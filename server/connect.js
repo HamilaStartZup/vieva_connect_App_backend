@@ -3,12 +3,12 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 const PORT = process.env.PORT || 7000;
-const MONGODB_URL = process.env.MONGODB_URL;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Fonction pour se connecter à la base de données MongoDB
 const connectToDatabase = async () => {
   try {
-    await mongoose.connect(MONGODB_URL, { dbName: "vieva_Connect" });
+    await mongoose.connect(MONGODB_URI);
     console.log("Connexion à la base de données MongoDB établie avec succès");
   } catch (error) {
     console.error(
