@@ -10,11 +10,12 @@ router.get("/", async(req, res)=>{
   res.status(200).json({ mssg: "Voici la page landing" });
 
 });
-
+// 
 router.get("/login", async(req,res)=>{
   res.status(200).json({ mssg: "Coucou login" });
 });
 
+// POST login
 router.post("/login",[
   // Validation for email and password
   check("email", "Email is required").isEmail(),

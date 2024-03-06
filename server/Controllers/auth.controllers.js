@@ -14,25 +14,24 @@ module.exports = {
       });
     }
     // Checking user credentials and generating JWT token for authentication
-    const { email} = req.body;
+    const { email, password } = req.body;
     await Personne.findOne({ email: `${email}` }).then((personne) => {
       if (!personne) {
         return res.status(400).json({
           error: "User not found",
         });
       }
-    //   if (!personne.authenticate(password)) {
-    //       return res.status(401).json({
-    //           error: "Email or Password does not exist"
-    //       });
-    //   }
+      //   if (!personne.authenticate(password)) {
+      //       return res.status(401).json({
+      //           error: "Email or Password does not exist"
+      //       });
+      //   }
 
-      // Avec le mot de passe avant cryptage
-      if (!personne.encrypted_mdp) {
-        return res.status(401).json({
-          error: "Email or Password does not exist",
-        });
+      // Avec le mot de passe avant cryptage pour le test
+      if (!personne.encrypted_mdp || password !== personne.encrypted_mdp) {
+        return res.status(401).json({ error: "Invalid email or password" });
       }
+
       // Setting JWT token as a cookie in the browser
       const token = jwtToken.sign({ _id: personne._id }, "shhhhh");
       res.cookie("token", token, { expire: new Date() + 9999 });
