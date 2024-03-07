@@ -18,7 +18,7 @@ app.use(cookieParser());
 // CORS for enabling Cross-Origin Resource Sharing
 app.use(cors());
 // Routing
-app.use('/api/auth', authRoutes);
+app.use('/api', authRoutes);
 
 // Connexion a la DB
 connectToDatabase();

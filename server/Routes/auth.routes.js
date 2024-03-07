@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const {login} = require("../Controllers/auth.controllers.js")
+const {login, create} = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 
 
 
-//
+// 
 router.get("/", async(req, res)=>{
   res.status(200).json({ mssg: "Voici la page landing" });
 
@@ -15,14 +15,24 @@ router.get("/login", async(req,res)=>{
   res.status(200).json({ mssg: "Coucou login" });
 });
 
-// POST login
+// POST Login 
 router.post("/login",[
-  // Validation for email and password
+  // Validation pour l'email et le mot de passe
   check("email", "Email is required").isEmail(),
-  check("password", "Password is required").isLength({ min: 1 })
+  check("mdp", "Password is required").isLength({ min: 1 })
 ],
  login);
 
-
+// POST Create
+router.post("/create",[
+// Validation pour l'email et le mot de passe et le nom
+check("nom", "LastName must be 3+ chars long").isLength({ min: 3 }),
+check("prenom", "FirstName must be 3+ chars long").isLength({ min: 3 }),
+check("adresse", "Address must be 3+ chars long").isLength({ min: 10 }),
+check("telephone", "Phone must be 10+ chars long").isLength({ min: 10 }),
+check("email", "Email is required").isEmail(),
+check("mdp", "Password must contain 8+ chars").isLength({ min: 8 })
+],
+create);
 
 module.exports = router;

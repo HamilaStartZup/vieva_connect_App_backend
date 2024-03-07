@@ -39,11 +39,11 @@ const personneSchema = new mongoose.Schema({
 
 //Creating a "virtua" field that will take in password and encrypt it
 personneSchema
-  .virtual("password")
-  .set(function (password) {
-    this._password = password;
+  .virtual("mdp")
+  .set(function (mdp) {
+    this._password = mdp;
     this.salt = uuidv4();
-    this.encrypted_mdp = this.securedPassword(password);
+    this.encrypted_mdp = this.securedPassword(mdp);
   })
   .get(function () {
     return this._password;
@@ -68,5 +68,5 @@ personneSchema.method({
     }
   },
 });
-// module.exports = mongoose.model("Personnes", personneSchema);
+
 module.exports = mongoose.model("Personne", personneSchema);
