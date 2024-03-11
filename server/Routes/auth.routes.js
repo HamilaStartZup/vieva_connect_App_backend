@@ -2,8 +2,12 @@ const express = require("express");
 const router = express.Router();
 const {login, create} = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../openapi.json');
 
-
+// documentation api
+router.use('/api-docs', swaggerUi.serve);
+router.get('/api-docs', swaggerUi.setup(swaggerDocument));
 
 // 
 router.get("/", async(req, res)=>{

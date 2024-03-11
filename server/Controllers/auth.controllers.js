@@ -17,7 +17,7 @@ module.exports = {
     const { email, mdp } = req.body;
     await Personne.findOne({ email: `${email}` }).then((personne) => {
       if (!personne) {
-        return res.status(400).json({
+          return res.status(400).json({
           error: "User not found",
         });
       }
@@ -48,7 +48,7 @@ module.exports = {
 
     const { mdp, confirm_mdp } = req.body;
     if (mdp !== confirm_mdp) {
-        return res.status(422).json({
+        return res.status(400).json({
             error: "Passwords do not match",
         });
     }

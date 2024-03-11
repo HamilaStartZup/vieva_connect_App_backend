@@ -1,0 +1,119 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Vieva_Connect",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentification",
+      "description": "authentification et creation d'utilisateurs"
+    }
+  ],
+  "paths": {
+    "/api/login": {
+      "post": {
+        "tags": [
+          "Authentification"
+        ],
+        "summary": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "email": "dormeur@g.com",
+                  "mdp": "dormeurbest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "User not found",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "401": {
+            "description": "Invalid  password",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/create": {
+      "post": {
+        "tags": [
+          "Authentification"
+        ],
+        "summary": "Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": {
+                  "nom": "Dole",
+                  "prenom": "Joe",
+                  "adresse": "34 rue du coq fainéant",
+                  "telephone": "0130567989",
+                  "email": "joedole@g.com",
+                  "mdp": "joedolebest",
+                  "confirm_mdp": "joedolebest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Passwords don't match",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}
