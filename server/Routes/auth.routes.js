@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {login, create} = require("../Controllers/auth.controllers.js")
+const {login, create, isSignedIn} = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../openapi.json');
@@ -38,5 +38,10 @@ check("email", "Email is required").isEmail(),
 check("mdp", "Password must contain 8+ chars").isLength({ min: 8 })
 ],
 create);
+
+// Route test pour tester la protection des routes
+router.get("/testroute", isSignedIn, (req, res) => {
+  res.send("A protected route");
+});
 
 module.exports = router;

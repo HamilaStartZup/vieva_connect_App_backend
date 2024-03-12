@@ -1,6 +1,6 @@
 // Importing necessary modules and models
 const Personne = require("../models/personnes");
-const { check, validationResult } = require("express-validator");
+const {validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const { expressjwt: jwt } = require("express-jwt");
 
@@ -36,6 +36,7 @@ module.exports = {
       return res.json({ token, personne: { _id, nom, prenom, email } });
     });
   },
+
 
   create: async (req, res) => {
     // Validation des inputs en utilisant express-validator
@@ -75,4 +76,23 @@ module.exports = {
         return res.status(500).json({ error: errorMessage });
       });
   },
+
+// Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide
+isSignedIn: jwt({
+    secret: 'shhhhh',
+    userProperty: "auth",
+    algorithms: ['HS256']
+}),
+
+
+// Middleware pour vérifier si l'utilisateur est authentifié
+isAuthenticated:(req, res, next) => {
+  let checker = req.profile && req.auth && req.profile._id == req.auth._id;
+  if (!checker) {
+      return res.status(403).json({
+          error: "ACCESS DENIED"
+      });
+  }
+  next();
+}
 };
