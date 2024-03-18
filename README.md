@@ -1,9 +1,14 @@
 # Parents_App_backend
 
-# <em>Documentation de l'API</em>
+# <em>Changement du cryptage du mot de passe</em>
 
--  Utilisation de swagger UI pour afficher un fichier JSON contenant la documentation.
-  
--  Une fois le serveur lancé , tapez " /api/api-docs " apres le server dans la barre d'adresse.
-  
-![swagger](https://github.com/HamilaStartZup/vieva_connect_App_backend/assets/156074561/58cb9f6d-3a66-4cec-8879-84c88eb4e027)
+###  Adaptation du code existant pour ' <em>bcrypt</em> '
+- Installation du module ' <em>bcrypt</em> '
+- Utilisation des differentes fonctionnalités
+  * ' genSaltSync ' pour generer un salt aleatoire
+  * ' hashSync ' pour crypter a l'aide du salt precedent
+  * ' compareSync ' pour comparer les mots de passe entre la version originale et celle cryptée
+
+
+
+
