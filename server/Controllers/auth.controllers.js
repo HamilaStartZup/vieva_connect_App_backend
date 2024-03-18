@@ -75,4 +75,18 @@ module.exports = {
         return res.status(500).json({ error: errorMessage });
       });
   },
+
+  profile: async (req, res)=> {
+    try {
+        const personne = await Personne.findById(req.params.id)
+        .select('-salt')
+        .select('-encrypted_mdp');
+        if (!personne) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+        res.json(personne);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
 };
