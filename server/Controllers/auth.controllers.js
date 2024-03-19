@@ -93,10 +93,10 @@ module.exports = {
     }
     next();
   },
-  
+
   profile: async (req, res) => {
     try {
-      const personne = await Personne.findById(req.params.id)
+      const personne = await Personne.findById(req.params.userId)
         .select("-salt")
         .select("-encrypted_mdp");
       if (!personne) {

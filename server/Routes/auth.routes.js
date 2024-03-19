@@ -45,6 +45,6 @@ router.get("/testroute", isSignedIn, (req, res) => {
 });
 
 // Route protégée pour le profil
-router.get("/profile/:id",isSignedIn, profile)
+router.get("/profile/:userId",isSignedIn, profile)
 
 module.exports = router;
