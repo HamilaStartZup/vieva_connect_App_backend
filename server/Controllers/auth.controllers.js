@@ -17,7 +17,7 @@ module.exports = {
     const { email, mdp } = req.body;
     await Personne.findOne({ email: `${email}` }).then((personne) => {
       if (!personne) {
-          return res.status(400).json({
+        return res.status(400).json({
           error: "User not found",
         });
       }
@@ -48,9 +48,9 @@ module.exports = {
 
     const { mdp, confirm_mdp } = req.body;
     if (mdp !== confirm_mdp) {
-        return res.status(400).json({
-            error: "Passwords do not match",
-        });
+      return res.status(400).json({
+        error: "Passwords do not match",
+      });
     }
 
     // Creation d'un nouvel utilisateur et sa sauvegarde dans la DB
@@ -76,17 +76,35 @@ module.exports = {
       });
   },
 
-  profile: async (req, res)=> {
-    try {
-        const personne = await Personne.findById(req.params.id)
-        .select('-salt')
-        .select('-encrypted_mdp');
-        if (!personne) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-        res.json(personne);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+  // Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide
+  isSignedIn: jwt({
+    secret: "shhhhh",
+    userProperty: "auth",
+    algorithms: ["HS256"],
+  }),
+
+  // Middleware pour vérifier si l'utilisateur est authentifié
+  isAuthenticated: (req, res, next) => {
+    let checker = req.profile && req.auth && req.profile._id == req.auth._id;
+    if (!checker) {
+      return res.status(403).json({
+        error: "ACCESS DENIED",
+      });
     }
-}
+    next();
+  },
+  
+  profile: async (req, res) => {
+    try {
+      const personne = await Personne.findById(req.params.id)
+        .select("-salt")
+        .select("-encrypted_mdp");
+      if (!personne) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+      res.json(personne);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  },
 };
