@@ -13,6 +13,10 @@
     {
       "name": "Authentification",
       "description": "authentification et creation d'utilisateurs"
+    },
+    {
+      "name": "Profil",
+      "description": "Information de l'utilisateur"
     }
   ],
   "paths": {
@@ -26,11 +30,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "example": {
-                  "email": "dormeur@g.com",
-                  "mdp": "dormeurbest"
-                }
+                "$ref": "#/components/schemas/Login"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
               }
             }
           }
@@ -73,16 +83,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "example": {
-                  "nom": "Dole",
-                  "prenom": "Joe",
-                  "adresse": "34 rue du coq fainéant",
-                  "telephone": "0130567989",
-                  "email": "joedole@g.com",
-                  "mdp": "joedolebest",
-                  "confirm_mdp": "joedolebest"
-                }
+                "$ref": "#/components/schemas/Create"
+              }
+            },
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/Create"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Create"
               }
             }
           }
@@ -111,6 +122,137 @@
             "content": {
               "application/json": {}
             }
+          }
+        }
+      }
+    },
+    "/api/profile/{userId}": {
+      "get": {
+        "tags": [
+          "Profil"
+        ],
+        "summary": "Trouve un utilisateur par son Id",
+        "description": "Retourne un seul profil",
+        "parameters": [
+          {
+        "name": "userId",
+        "in": "path",
+        "description": "Id d'un utilisateur",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "hexadecimal"
+        }
+          }
+        ],
+        
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                "$ref": "#/components/schemas/Profil"
+              }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": " Internal Server Error",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "401":{
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Base": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Durand"
+          },
+          "prenom": {
+            "type": "string",
+            "example": "Alain"
+          },
+          "adresse": {
+            "type": "string",
+            "example": "20 rue du coq"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "0123456789"
+          },
+          "email": {
+            "type": "string",
+            "example": "azerty@g.com"
+          }
+        }
+      },
+      "Profil": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Base"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "hexadecimal",
+                "example": "65e9a57ab9a7b2d954b057c9"
+              }
+            }
+          }
+        ]
+      },
+      "Create": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Base"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mdp": {
+                "type": "string",
+                "example": "azerty2024"
+              },
+              "confirm_mdp": {
+                "type": "string",
+                "example": "azerty2024"
+              }
+            }
+          }
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email":{
+            "type": "string",
+            "example": "azerty@g.com"
+          },
+          "mdp":{
+            "type": "string",
+            "example": "azerty2024"
           }
         }
       }
