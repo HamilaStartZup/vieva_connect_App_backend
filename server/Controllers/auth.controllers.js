@@ -5,6 +5,7 @@ const jwtToken = require("jsonwebtoken");
 const { expressjwt: jwt } = require("express-jwt");
 
 module.exports = {
+  // Fonction pour se connecter et générer un token
   login: async (req, res) => {
     // Validation des inputs en utilisant express-validator
     const errors = validationResult(req);
@@ -29,7 +30,7 @@ module.exports = {
         });
       }
 
-      // Setting JWT token as a cookie in the browser
+      // Définition du jeton JWT comme cookie dans le navigateur
       const token = jwtToken.sign({ _id: personne._id }, "shhhhh");
       res.cookie("token", token, { expire: new Date() + 9999 });
       const { _id, nom, prenom, email } = personne;
@@ -37,6 +38,7 @@ module.exports = {
     });
   },
 
+// Fonction pour créer un utilisateur dans la base de données
   create: async (req, res) => {
     // Validation des inputs en utilisant express-validator
     const errors = validationResult(req);
@@ -94,6 +96,7 @@ module.exports = {
     next();
   },
 
+  // Fonction pour récupérer le profil d'un utilisateur
   profile: async (req, res) => {
     try {
       const personne = await Personne.findById(req.params.userId)
@@ -107,4 +110,11 @@ module.exports = {
       res.status(500).json({ message: err.message });
     }
   },
+// Fonction pour se déconnecter en supprimant le cookie
+  logout: async (req, res) => {
+    res.clearCookie("token");
+    res.json({
+        message: "Utilisateur s'est déconnecté"
+    });
+  }
 };

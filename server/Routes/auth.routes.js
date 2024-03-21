@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {login, create, profile, isSignedIn} = require("../Controllers/auth.controllers.js")
+const {login, create, profile, isSignedIn, logout} = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../openapi.json');
@@ -45,6 +45,8 @@ router.get("/testroute", isSignedIn, (req, res) => {
 });
 
 // Route protégée pour le profil
-router.get("/profile/:userId",isSignedIn, profile)
+router.get("/profile/:userId",isSignedIn, profile);
 
+// Route de logout
+router.get("/logout", logout);
 module.exports = router;
