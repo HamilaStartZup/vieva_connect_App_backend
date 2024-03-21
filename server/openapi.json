@@ -25,7 +25,10 @@
         "tags": [
           "Authentification"
         ],
-        "summary": "Login",
+        "summary": "Connexion a l'application",
+        "description": "",
+        "operationId": "loginUser",
+        "parameters" : [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -78,7 +81,10 @@
         "tags": [
           "Authentification"
         ],
-        "summary": "Create",
+        "summary": "Creation d'un nouvel utilisateur",
+        "description": "",
+        "operationId": "createUser",
+        "parameters" : [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -133,6 +139,7 @@
         ],
         "summary": "Trouve un utilisateur par son Id",
         "description": "Retourne un seul profil",
+        "operationId": "profilUser",
         "parameters": [
           {
         "name": "userId",
@@ -174,6 +181,22 @@
             "content": {
               "application/json": {}
             }
+          }
+        }
+      }
+    },
+    "/api/logout":{
+      "get": {
+        "tags": [
+          "Authentification"
+        ],
+        "summary": "Déconnexion de l'application",
+        "description":"",
+        "operationId": "logoutUser",
+        "parameters": [],
+        "responses":{
+          "default": {
+            "description": "successful operation"
           }
         }
       }
