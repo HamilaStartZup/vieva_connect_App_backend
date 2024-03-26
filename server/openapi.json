@@ -28,7 +28,7 @@
         "summary": "Connexion a l'application",
         "description": "",
         "operationId": "loginUser",
-        "parameters" : [],
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -84,7 +84,7 @@
         "summary": "Creation d'un nouvel utilisateur",
         "description": "",
         "operationId": "createUser",
-        "parameters" : [],
+        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -142,26 +142,31 @@
         "operationId": "profilUser",
         "parameters": [
           {
-        "name": "userId",
-        "in": "path",
-        "description": "Id d'un utilisateur",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "format": "hexadecimal"
-        }
+            "name": "userId",
+            "in": "path",
+            "description": "Id d'un utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "hexadecimal"
+            }
           }
         ],
-        
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
-                "$ref": "#/components/schemas/Profil"
+                  "$ref": "#/components/schemas/Profil"
+                }
               }
-              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {}
             }
           },
           "404": {
@@ -175,26 +180,20 @@
             "content": {
               "application/json": {}
             }
-          },
-          "401":{
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {}
-            }
           }
         }
       }
     },
-    "/api/logout":{
+    "/api/logout": {
       "get": {
         "tags": [
           "Authentification"
         ],
         "summary": "Déconnexion de l'application",
-        "description":"",
+        "description": "",
         "operationId": "logoutUser",
         "parameters": [],
-        "responses":{
+        "responses": {
           "default": {
             "description": "successful operation"
           }
@@ -257,10 +256,6 @@
               "mdp": {
                 "type": "string",
                 "example": "azerty2024"
-              },
-              "confirm_mdp": {
-                "type": "string",
-                "example": "azerty2024"
               }
             }
           }
@@ -269,11 +264,11 @@
       "Login": {
         "type": "object",
         "properties": {
-          "email":{
+          "email": {
             "type": "string",
             "example": "azerty@g.com"
           },
-          "mdp":{
+          "mdp": {
             "type": "string",
             "example": "azerty2024"
           }
