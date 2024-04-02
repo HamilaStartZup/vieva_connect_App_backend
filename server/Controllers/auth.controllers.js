@@ -1,107 +1,121 @@
-// Importing necessary modules and models
+// importation des modules et modeles nécesssaires
 const Personne = require("../models/personnes");
-const { check, validationResult } = require("express-validator");
+const {validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const { expressjwt: jwt } = require("express-jwt");
+const bcrypt = require("bcrypt");
 
 module.exports = {
   // Fonction pour se connecter et générer un token
   login: async (req, res) => {
-    // Validation des inputs en utilisant express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(422).json({
-        error: errors.array()[0].msg,
-      });
-    }
-    // Verification des authentifiants de l'utilisateur et generation d'un  JWT token pour l'authentification
-    const { email, mdp } = req.body;
-    await Personne.findOne({ email: `${email}` }).then((personne) => {
+    try {
+      // Validation des inputs en utilisant express-validator
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(422).json({
+          error: errors.array()[0].msg,
+        });
+      }
+
+      // Récupération des identifiants de connexion
+      const { email, mdp } = req.body;
+      // Recherche de l'utilisateur dans la base de données
+      const personne = await Personne.findOne({ email });
       if (!personne) {
         return res.status(400).json({
           error: "User not found",
         });
       }
-
       // Vérification du mot de passe
-      if (!personne.authenticate(mdp)) {
+      const isPasswordValid = await bcrypt.compare(mdp, personne.mdp);
+      if (!isPasswordValid) {
         return res.status(401).json({
-          error: "Invalid  password",
+          error: "Invalid password",
+        });
+      }
+      // Génération du token JWT
+      const token = jwtToken.sign({ _id: personne._id }, "shhhhh");
+      res.cookie("token", token, { expire: new Date() + 9999 });
+      const { _id, nom, prenom } = personne;
+      // Envoi de la réponse avec le token et les informations de l'utilisateur
+      return res.json({ token, personne: { _id, nom, prenom, email } });
+    } catch (error) {
+      console.log("Error in login controller", error.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+  // Fonction pour créer un utilisateur dans la base de données
+  create: async (req, res) => {
+    try {
+      // Validation des inputs en utilisant express-validator
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(422).json({
+          error: errors.array()[0].msg,
         });
       }
 
-      // Définition du jeton JWT comme cookie dans le navigateur
-      const token = jwtToken.sign({ _id: personne._id }, "shhhhh");
-      res.cookie("token", token, { expire: new Date() + 9999 });
-      const { _id, nom, prenom, email } = personne;
-      return res.json({ token, personne: { _id, nom, prenom, email } });
-    });
-  },
-
-// Fonction pour créer un utilisateur dans la base de données
-  create: async (req, res) => {
-    // Validation des inputs en utilisant express-validator
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(422).json({
-        error: errors.array()[0].msg,
-      });
-    }
-
-    const { mdp, confirm_mdp } = req.body;
-    if (mdp !== confirm_mdp) {
-      return res.status(400).json({
-        error: "Passwords do not match",
-      });
-    }
-
-    // Creation d'un nouvel utilisateur et sa sauvegarde dans la DB
-    const personne = new Personne(req.body);
-    personne
-      .save()
-      .then((personne) => {
-        res.json({
-          nom: personne.nom,
-          prenom: personne.prenom,
-          adresse: personne.adresse,
-          telephone: personne.telephone,
-          email: personne.email,
-          mdp: personne.mdp,
+      const { nom, prenom, adresse, telephone, email, mdp, confirm_mdp } =
+        req.body;
+      if (mdp !== confirm_mdp) {
+        return res.status(400).json({
+          error: "Passwords do not match",
         });
-      })
-      .catch((err) => {
-        let errorMessage = "Something went wrong.";
-        if (err.code === 11000) {
-          errorMessage = "User already exists, please signin";
-        }
-        return res.status(500).json({ error: errorMessage });
+      }
+
+      const personne = await Personne.findOne({ email });
+      if (personne) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+
+      // Hachage du mot de passe avec bcrypt
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(mdp, salt); 
+
+      const newPersonne = new Personne({
+        nom,
+        prenom,
+        adresse,
+        telephone,
+        email,
+        mdp: hashedPassword,
       });
+
+      // Ajout du nouveau utilisateur dans la base de données
+      await newPersonne.save();
+      // Retourne le nouvel utilisateur
+      return res.json(newPersonne);
+    } catch (error) {
+      console.log("Error in signup controller", error.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
   },
 
-  // Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide
-  isSignedIn: jwt({
+ // Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide, et s'il est authentifié
+isAuthenticated: (req, res, next) => {
+  jwt({
     secret: "shhhhh",
     userProperty: "auth",
     algorithms: ["HS256"],
-  }),
-
-  // Middleware pour vérifier si l'utilisateur est authentifié
-  isAuthenticated: (req, res, next) => {
-    let checker = req.profile && req.auth && req.profile._id == req.auth._id;
-    if (!checker) {
+  })(req, res, (err) => {
+    if (err) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+    if (!req.auth || !req.auth._id) {
       return res.status(403).json({
-        error: "ACCESS DENIED",
+        error: "Access Denied",
       });
     }
     next();
-  },
+  });
+},
 
   // Fonction pour récupérer le profil d'un utilisateur
   profile: async (req, res) => {
     try {
-      const personne = await Personne.findById(req.params.userId)
-        .select("-salt")
-        .select("-encrypted_mdp");
+      const personne = await Personne.findById(req.params.userId);
       if (!personne) {
         return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
@@ -110,11 +124,17 @@ module.exports = {
       res.status(500).json({ message: err.message });
     }
   },
-// Fonction pour se déconnecter en supprimant le cookie
-  logout: async (req, res) => {
+
+  // Fonction pour se déconnecter en supprimant le cookie
+logout: async (req, res) => {
+  try {
     res.clearCookie("token");
     res.json({
-        message: "Utilisateur s'est déconnecté"
+      message: "Utilisateur s'est déconnecté",
     });
+  } catch (error) {
+    console.log("Error in logout controller", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-};
+},
+}
