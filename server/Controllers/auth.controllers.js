@@ -57,11 +57,11 @@ module.exports = {
 
       const { nom, prenom, adresse, telephone, email, mdp, confirm_mdp } =
         req.body;
-      if (mdp !== confirm_mdp) {
-        return res.status(400).json({
-          error: "Passwords do not match",
-        });
-      }
+      // if (mdp !== confirm_mdp) {
+      //   return res.status(400).json({
+      //     error: "Passwords do not match",
+      //   });
+      // }
 
       const personne = await Personne.findOne({ email });
       if (personne) {
