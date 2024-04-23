@@ -137,4 +137,18 @@ logout: async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 },
+// Fonction pour vérifier le token avec ConnectyCube
+verify_user: async (req, res) => {
+  const token = req.query.token;
+  try {
+    const decoded = jwtToken.verify(token, "shhhhh");
+    const personne = await Personne.findById(decoded._id);
+    if (!personne) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.json({ id: personne._id });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
 }
