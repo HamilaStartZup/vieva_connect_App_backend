@@ -26,7 +26,7 @@
           "Authentification"
         ],
         "summary": "Connexion a l'application",
-        "description": "",
+        "description": "Connexion en utilisant l'email et le mot de passe",
         "operationId": "loginUser",
         "parameters": [],
         "requestBody": {
@@ -50,9 +50,17 @@
         },
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Successful response. Creation d'un cookie contenant le token",
             "content": {
               "application/json": {}
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Cookie containing the JWT token.",
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "400": {
@@ -68,7 +76,13 @@
             }
           },
           "422": {
-            "description": "",
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
             "content": {
               "application/json": {}
             }
@@ -82,7 +96,7 @@
           "Authentification"
         ],
         "summary": "Creation d'un nouvel utilisateur",
-        "description": "",
+        "description": "Enregistrement d'un nouvel utilisateur dans la base de données",
         "operationId": "createUser",
         "parameters": [],
         "requestBody": {
@@ -106,13 +120,21 @@
         },
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Successful response. Creation d'un cookie contenant le token",
             "content": {
               "application/json": {}
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "Cookie containing the JWT token.",
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           },
           "400": {
-            "description": "Passwords don't match",
+            "description": "User already exists",
             "content": {
               "application/json": {}
             }
@@ -124,7 +146,7 @@
             }
           },
           "500": {
-            "description": "User already exists",
+            "description": "Internal Server Error",
             "content": {
               "application/json": {}
             }
@@ -190,12 +212,12 @@
           "Authentification"
         ],
         "summary": "Déconnexion de l'application",
-        "description": "",
+        "description": "Déconnexion ",
         "operationId": "logoutUser",
         "parameters": [],
         "responses": {
           "default": {
-            "description": "successful operation"
+            "description": "Successful operation. Suppression du cookie"
           }
         }
       }
