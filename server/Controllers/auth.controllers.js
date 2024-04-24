@@ -1,6 +1,6 @@
 // importation des modules et modeles nécesssaires
 const Personne = require("../models/personnes");
-const {validationResult } = require("express-validator");
+const { validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const { expressjwt: jwt } = require("express-jwt");
 const bcrypt = require("bcrypt");
@@ -70,7 +70,7 @@ module.exports = {
 
       // Hachage du mot de passe avec bcrypt
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(mdp, salt); 
+      const hashedPassword = await bcrypt.hash(mdp, salt);
 
       const newPersonne = new Personne({
         nom,
@@ -83,34 +83,38 @@ module.exports = {
 
       // Ajout du nouveau utilisateur dans la base de données
       await newPersonne.save();
-      // Retourne le nouvel utilisateur
-      return res.json(newPersonne);
+
+      // Génération du token JWT pour le nouvel utilisateur et placement dans un cookie
+      const token = jwtToken.sign({ _id: newPersonne._id }, "shhhhh");
+      res.cookie("token", token, { expire: new Date() + 9999 });
+      // Retourne le nouvel utilisateur avec le token dans le cookie
+      return res.json({ token, personne: newPersonne });
     } catch (error) {
       console.log("Error in signup controller", error.message);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   },
 
- // Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide, et s'il est authentifié
-isAuthenticated: (req, res, next) => {
-  jwt({
-    secret: "shhhhh",
-    userProperty: "auth",
-    algorithms: ["HS256"],
-  })(req, res, (err) => {
-    if (err) {
-      return res.status(401).json({
-        error: "Unauthorized",
-      });
-    }
-    if (!req.auth || !req.auth._id) {
-      return res.status(403).json({
-        error: "Access Denied",
-      });
-    }
-    next();
-  });
-},
+  // Middleware pour vérifier si l'utilisateur est connecté et a un jeton valide, et s'il est authentifié
+  isAuthenticated: (req, res, next) => {
+    jwt({
+      secret: "shhhhh",
+      userProperty: "auth",
+      algorithms: ["HS256"],
+    })(req, res, (err) => {
+      if (err) {
+        return res.status(401).json({
+          error: "Unauthorized",
+        });
+      }
+      if (!req.auth || !req.auth._id) {
+        return res.status(403).json({
+          error: "Access Denied",
+        });
+      }
+      next();
+    });
+  },
 
   // Fonction pour récupérer le profil d'un utilisateur
   profile: async (req, res) => {
@@ -126,29 +130,29 @@ isAuthenticated: (req, res, next) => {
   },
 
   // Fonction pour se déconnecter en supprimant le cookie
-logout: async (req, res) => {
-  try {
-    res.clearCookie("token");
-    res.json({
-      message: "Utilisateur s'est déconnecté",
-    });
-  } catch (error) {
-    console.log("Error in logout controller", error.message);
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
-},
-// Fonction pour vérifier le token avec ConnectyCube
-verify_user: async (req, res) => {
-  const token = req.query.token;
-  try {
-    const decoded = jwtToken.verify(token, "shhhhh");
-    const personne = await Personne.findById(decoded._id);
-    if (!personne) {
-      return res.status(401).json({ error: 'Invalid token' });
+  logout: async (req, res) => {
+    try {
+      res.clearCookie("token");
+      res.json({
+        message: "Utilisateur s'est déconnecté",
+      });
+    } catch (error) {
+      console.log("Error in logout controller", error.message);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-    res.json({ id: personne._id });
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-}
+  },
+  // Fonction pour vérifier le token avec ConnectyCube
+  verify_user: async (req, res) => {
+    const token = req.query.token;
+    try {
+      const decoded = jwtToken.verify(token, "shhhhh");
+      const personne = await Personne.findById(decoded._id);
+      if (!personne) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      res.json({ id: personne._id });
+    } catch (err) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  },
+};
