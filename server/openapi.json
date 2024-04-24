@@ -199,6 +199,45 @@
           }
         }
       }
+    },
+    "/api/verify_user": {
+      "get": {
+        "tags": [
+          "Authentification"
+        ],
+        "summary": "Vérification de l'utilisateur pour ConnectyCube",
+        "description": "",
+        "operationId": "verifyUser",
+        "parameters": [
+          {
+            "name": "token",
+            "description": "Dois etre sous la forme  /verify_user?token={token}",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Verify_user"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -271,6 +310,16 @@
           "mdp": {
             "type": "string",
             "example": "azerty2024"
+          }
+        }
+      },
+      "Verify_user": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "hexadecimal",
+            "example": "65e9a57ab9a7b2d954b057c9"
           }
         }
       }
