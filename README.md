@@ -1,9 +1,16 @@
 # Parents_App_backend
 
-# <em>Documentation de l'API</em>
+# <em>Creation du endpoint verify_user </em> 
 
--  Utilisation de swagger UI pour afficher un fichier JSON contenant la documentation.
+### 1. Creation du controller du <em>verify_user</em>
+  - récupération du token dans le query de la requête
+  - décodage du token pour récupérer l'objet "decoded" ayant les propriétés utilsées lors du chiffrement
+  - creation d'un objet "personn" si le "decoded.id" a un equivalent dans la base de données
+  - si l'objet"personne" existe , alors on envoie <em> res.json({ id: personne._id }) </em>
+
+### 2. Creation du route de <em>verify_user</em>
+- Utilisation de la fonctionnalité ' router ' d' express pour creer les routes
+  * la methode GET pour la route de 'verify_user'
+  * utilisation de la fonction <em> verify_user </em> du fichier controller.js 
   
--  Une fois le serveur lancé , tapez " /api/api-docs " apres le server dans la barre d'adresse.
-  
-![swagger](https://github.com/HamilaStartZup/vieva_connect_App_backend/assets/156074561/58cb9f6d-3a66-4cec-8879-84c88eb4e027)
+
