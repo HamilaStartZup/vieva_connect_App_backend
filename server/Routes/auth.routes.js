@@ -51,6 +51,6 @@ router.get("/profile/:userId",isAuthenticated, profile);
 router.get("/logout", logout);
 
 // Route de verification pour ConnectyCube
-router.get('/verify_user', verify_user);
+router.post('/verify_user', verify_user);
 
 module.exports = router;

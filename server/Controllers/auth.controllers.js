@@ -143,7 +143,7 @@ module.exports = {
   },
   // Fonction pour vérifier le token avec ConnectyCube
   verify_user: async (req, res) => {
-    const token = req.query.token;
+    const token = req.body.token;
     try {
       const decoded = jwtToken.verify(token, "shhhhh");
       const personne = await Personne.findById(decoded._id);
