@@ -126,29 +126,29 @@ isAuthenticated: (req, res, next) => {
   },
 
   // Fonction pour se déconnecter en supprimant le cookie
-logout: async (req, res) => {
-  try {
-    res.clearCookie("token");
-    res.json({
-      message: "Utilisateur s'est déconnecté",
-    });
-  } catch (error) {
-    console.log("Error in logout controller", error.message);
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
-},
-// Fonction pour vérifier le token avec ConnectyCube
-verify_user: async (req, res) => {
-  const token = req.query.token;
-  try {
-    const decoded = jwtToken.verify(token, "shhhhh");
-    const personne = await Personne.findById(decoded._id);
-    if (!personne) {
-      return res.status(401).json({ error: 'Invalid token' });
+  logout: async (req, res) => {
+    try {
+      res.clearCookie("token");
+      res.json({
+        message: "Utilisateur s'est déconnecté",
+      });
+    } catch (error) {
+      console.log("Error in logout controller", error.message);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-    res.json({ id: personne._id });
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-}
+  },
+  // Fonction pour vérifier le token avec ConnectyCube
+  verify_user: async (req, res) => {
+    const token = req.body.token;
+    try {
+      const decoded = jwtToken.verify(token, "shhhhh");
+      const personne = await Personne.findById(decoded._id);
+      if (!personne) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      res.json({ id: personne._id });
+    } catch (err) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  },
+};
