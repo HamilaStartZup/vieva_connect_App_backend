@@ -223,7 +223,7 @@
       }
     },
     "/api/verify_user": {
-      "get": {
+      "post": {
         "tags": [
           "Authentification"
         ],
@@ -233,7 +233,7 @@
         "parameters": [
           {
             "name": "token",
-            "description": "Dois etre sous la forme  /verify_user?token={token}",
+            "description": "Verification avec renvoie d'une reponse",
             "in": "query",
             "required": true,
             "schema": {
@@ -241,6 +241,21 @@
             }
           }
         ],
+        "requestBody":{
+          "content":{
+            "application/json":{
+              "schema":{
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjI5MTk3Y2QzNWYwM2U0NzQ2YjYxZDgiLCJpYXQiOjE3MTQzODI5NDh9.bMDCQ0UGdBCsywjya3C-jGlnpBh5IyqnctgSWVpwR0c"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful response",
