@@ -1,6 +1,7 @@
 const Famille = require("../models/familles");
 const { validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
+const Personne = require("../models/personnes");
 
 module.exports = {
   createFamily: async (req, res) => {
@@ -60,14 +61,14 @@ module.exports = {
         return res.status(422).json({ error: errors.array()[0].msg });
       }
 
-      const { codeFamily } = req.body;
+      const { code_family } = req.body;
       // Récupérer le UserId depuis le token de l'utilisateur
       const token = req.cookies.token; // Supposons que le token est stocké dans un cookie nommé "token"
       const decodedToken = jwtToken.verify(token, "shhhhh"); // Décode le token
       const userId = decodedToken._id; // Récupère l'ID de l'utilisateur à partir du token
 
       // Cherche la famille par code_family
-      const famille = await Famille.findOne({ codeFamily });
+      const famille = await Famille.findOne({ code_family });
 
       if (!famille) {
         return res.status(404).json({ message: "Family not found" });
