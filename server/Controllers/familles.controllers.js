@@ -45,21 +45,67 @@ module.exports = {
 
       // Répondre avec la famille créée
       res.status(201).json(familleCréée);
-
     } catch (error) {
       // Gérer les erreurs
       console.error(error);
-      res.status(500).json({ message: "Erreur lors de la création de la famille" });
+      res
+        .status(500)
+        .json({ message: "Erreur lors de la création de la famille" });
+    }
+  },
+  addToFamily: async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(422).json({ error: errors.array()[0].msg });
+      }
+
+      const { codeFamily } = req.body;
+      // Récupérer le UserId depuis le token de l'utilisateur
+      const token = req.cookies.token; // Supposons que le token est stocké dans un cookie nommé "token"
+      const decodedToken = jwtToken.verify(token, "shhhhh"); // Décode le token
+      const userId = decodedToken._id; // Récupère l'ID de l'utilisateur à partir du token
+
+      // Cherche la famille par code_family
+      const famille = await Famille.findOne({ codeFamily });
+
+      if (!famille) {
+        return res.status(404).json({ message: "Family not found" });
+      }
+
+      // Cherche l'utilisateur par id
+      const user = await Personne.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verifie si l'utilisateur est deja dans la famille
+      if (famille.listeFamily.includes(userId)) {
+        return res.status(400).json({ message: "User already in family" });
+      }
+
+      // Ajout de l'utilisateur a la famille
+      famille.listeFamily.push(user._id);
+
+      // Sauvegarde du changement
+      await famille.save();
+
+      res.status(200).json({ message: "User added to family" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Error adding user to family" });
     }
   },
 };
 
 // Fonction pour générer un code_family unique
 function generateUniqueCode() {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let code = 'VF-';
-    for (let i = 0; i < 4; i++) {
-      code += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return code;
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let code = "VF-";
+  for (let i = 0; i < 4; i++) {
+    code += characters.charAt(Math.floor(Math.random() * characters.length));
   }
+  return code;
+}
