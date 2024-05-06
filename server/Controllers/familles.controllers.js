@@ -98,6 +98,32 @@ module.exports = {
       res.status(500).json({ message: "Error adding user to family" });
     }
   },
+  getFamily: async (req, res) => {
+    try {
+    // Récupérer l'ID de l'utilisateur à partir du token
+    const token = req.cookies.token;
+    const decodedToken = jwtToken.verify(token, "shhhhh");
+    const userId = decodedToken._id;
+
+    // Trouver la famille à laquelle appartient l'utilisateur
+    const famille = await Famille.findOne({ listeFamily: userId }).populate("listeFamily");
+
+    if (!famille) {
+      return res.status(404).json({ message: "Aucune famille trouvée pour cet utilisateur" });
+    }
+
+    // Récupérer la liste des membres de la famille (uniquement leurs IDs)
+    const membresFamilleIds = famille.listeFamily.map(member => member._id);
+
+    res.status(200).json({ membresFamilleIds });
+    }catch (error) {
+        // Gérer les erreurs
+        console.error(error);
+        res
+          .status(500)
+          .json({ message: "Erreur lors de la création de la famille" });
+      }
+    }
 };
 
 // Fonction pour générer un code_family unique
