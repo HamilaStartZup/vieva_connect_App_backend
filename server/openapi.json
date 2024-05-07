@@ -12,11 +12,35 @@
   "tags": [
     {
       "name": "Authentification",
-      "description": "authentification et creation d'utilisateurs"
+      "description": "Authentification et creation d'utilisateurs",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
     },
     {
       "name": "Profil",
-      "description": "Information de l'utilisateur"
+      "description": "Information de l'utilisateur",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "ConnectyCube",
+      "description": "Endpoint concernant ConnectyCube",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "Famille",
+      "description": "Endpoint concernant la famille",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "http://swagger.io"
+      }
     }
   ],
   "paths": {
@@ -25,23 +49,12 @@
         "tags": [
           "Authentification"
         ],
-        "summary": "Connexion a l'application",
+        "summary": "Connexion à l'application",
         "description": "Connexion en utilisant l'email et le mot de passe",
         "operationId": "loginUser",
-        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Login"
-              }
-            },
-            "application/xml": {
-              "schema": {
-                "$ref": "#/components/schemas/Login"
-              }
-            },
-            "application/x-www-form-urlencoded": {
               "schema": {
                 "$ref": "#/components/schemas/Login"
               }
@@ -50,13 +63,10 @@
         },
         "responses": {
           "200": {
-            "description": "Successful response. Creation d'un cookie contenant le token",
-            "content": {
-              "application/json": {}
-            },
+            "description": "Connexion réussie",
             "headers": {
               "Set-Cookie": {
-                "description": "Cookie containing the JWT token.",
+                "description": "Cookie contenant le token",
                 "schema": {
                   "type": "string"
                 }
@@ -64,28 +74,16 @@
             }
           },
           "400": {
-            "description": "User not found",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Utilisateur introuvable"
           },
           "401": {
-            "description": "Invalid  password",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Mot de passe incorrect"
           },
           "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Entité non traitable"
           },
           "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Erreur interne du serveur"
           }
         }
       }
@@ -95,23 +93,12 @@
         "tags": [
           "Authentification"
         ],
-        "summary": "Creation d'un nouvel utilisateur",
+        "summary": "Création d'un nouvel utilisateur",
         "description": "Enregistrement d'un nouvel utilisateur dans la base de données",
         "operationId": "createUser",
-        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Create"
-              }
-            },
-            "application/xml": {
-              "schema": {
-                "$ref": "#/components/schemas/Create"
-              }
-            },
-            "application/x-www-form-urlencoded": {
               "schema": {
                 "$ref": "#/components/schemas/Create"
               }
@@ -120,13 +107,10 @@
         },
         "responses": {
           "200": {
-            "description": "Successful response. Creation d'un cookie contenant le token",
-            "content": {
-              "application/json": {}
-            },
+            "description": "Utilisateur créé avec succès",
             "headers": {
               "Set-Cookie": {
-                "description": "Cookie containing the JWT token.",
+                "description": "Cookie contenant le token",
                 "schema": {
                   "type": "string"
                 }
@@ -134,22 +118,13 @@
             }
           },
           "400": {
-            "description": "User already exists",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Utilisateur déjà existant"
           },
           "422": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Entrée non valide"
           },
           "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Erreur interne du serveur"
           }
         }
       }
@@ -159,9 +134,9 @@
         "tags": [
           "Profil"
         ],
-        "summary": "Trouve un utilisateur par son Id",
+        "summary": "Récupère un utilisateur par son Id",
         "description": "Retourne un seul profil",
-        "operationId": "profilUser",
+        "operationId": "getUserProfile",
         "parameters": [
           {
             "name": "userId",
@@ -176,7 +151,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Récupération réussie",
             "content": {
               "application/json": {
                 "schema": {
@@ -186,22 +161,13 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Non autorisé"
           },
           "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Utilisateur non trouvé"
           },
           "500": {
-            "description": " Internal Server Error",
-            "content": {
-              "application/json": {}
-            }
+            "description": "Erreur interne du serveur"
           }
         }
       }
@@ -212,12 +178,11 @@
           "Authentification"
         ],
         "summary": "Déconnexion de l'application",
-        "description": "Déconnexion ",
+        "description": "Déconnexion",
         "operationId": "logoutUser",
-        "parameters": [],
         "responses": {
           "default": {
-            "description": "Successful operation. Suppression du cookie"
+            "description": "Déconnexion réussie"
           }
         }
       }
@@ -225,40 +190,25 @@
     "/api/verify_user": {
       "post": {
         "tags": [
-          "Authentification"
+          "ConnectyCube"
         ],
         "summary": "Vérification de l'utilisateur pour ConnectyCube",
-        "description": "",
+        "description": "j",
         "operationId": "verifyUser",
         "parameters": [
           {
             "name": "token",
-            "description": "Verification avec renvoie d'une reponse",
             "in": "query",
+            "description": "Vérification avec renvoie d'une réponse",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody":{
-          "content":{
-            "application/json":{
-              "schema":{
-                "type": "object",
-                "properties": {
-                  "token": {
-                    "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjI5MTk3Y2QzNWYwM2U0NzQ2YjYxZDgiLCJpYXQiOjE3MTQzODI5NDh9.bMDCQ0UGdBCsywjya3C-jGlnpBh5IyqnctgSWVpwR0c"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Vérification réussie",
             "content": {
               "application/json": {
                 "schema": {
@@ -268,18 +218,157 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {}
+            "description": "Non autorisé"
+          }
+        }
+      }
+    },
+    "/api/createFamily": {
+      "post": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Création d'une famille",
+        "description": "Création d'une famille",
+        "operationId": "createFamily",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFamily"
+              }
             }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Famille créée avec succès"
+          },
+          "422": {
+            "description": "Entrée non valide"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/addToFamily": {
+      "put": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Ajout de l'utilisateur à une famille",
+        "description": "Ajout de l'utilisateur à une famille",
+        "operationId": "addToFamily",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToFamily"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ajouté avec succès"
+          },
+          "400": {
+            "description": "Déjà existant"
+          },
+          "404": {
+            "description": "Non trouvé"
+          },
+          "422": {
+            "description": "Entrée non valide"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/getFamily": {
+      "get": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Récupérer la liste des membres d'une famille",
+        "description": "Récupère la liste des membres d'une famille à laquelle appartient l'utilisateur connecté",
+        "responses": {
+          "200": {
+            "description": "La liste des membres de la famille a été récupérée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "membresFamilleIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
           }
         }
       }
     }
   },
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
   "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token"
+      }
+    },
     "schemas": {
-      "Base": {
+      "Profil": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "hexadecimal"
+          },
+          "nom": {
+            "type": "string",
+            "example": "Durand"
+          },
+          "prenom": {
+            "type": "string",
+            "example": "Alain"
+          },
+          "adresse": {
+            "type": "string",
+            "example": "20 rue du coq"
+          },
+          "telephone": {
+            "type": "string",
+            "example": 123456789
+          },
+          "email": {
+            "type": "string",
+            "example": "azerty@g.com"
+          }
+        }
+      },
+      "Create": {
         "type": "object",
         "properties": {
           "nom": {
@@ -296,46 +385,17 @@
           },
           "telephone": {
             "type": "string",
-            "example": "0123456789"
+            "example": 123456789
           },
           "email": {
             "type": "string",
             "example": "azerty@g.com"
+          },
+          "mdp": {
+            "type": "string",
+            "example": "azerty2024"
           }
         }
-      },
-      "Profil": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Base"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "hexadecimal",
-                "example": "65e9a57ab9a7b2d954b057c9"
-              }
-            }
-          }
-        ]
-      },
-      "Create": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Base"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "mdp": {
-                "type": "string",
-                "example": "azerty2024"
-              }
-            }
-          }
-        ]
       },
       "Login": {
         "type": "object",
@@ -355,8 +415,29 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "hexadecimal",
-            "example": "65e9a57ab9a7b2d954b057c9"
+            "format": "hexadecimal"
+          }
+        }
+      },
+      "CreateFamily": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Durand"
+          },
+          "description": {
+            "type": "string",
+            "example": "Happy family"
+          }
+        }
+      },
+      "AddToFamily": {
+        "type": "object",
+        "properties": {
+          "code_family": {
+            "type": "string",
+            "example": "VF-3r5T"
           }
         }
       }
