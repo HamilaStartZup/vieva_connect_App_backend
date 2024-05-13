@@ -12,35 +12,23 @@
   "tags": [
     {
       "name": "Authentification",
-      "description": "Authentification et creation d'utilisateurs",
-      "externalDocs": {
-        "description": "Find out more",
-        "url": "http://swagger.io"
-      }
+      "description": "Authentification et creation d'utilisateurs"
     },
     {
       "name": "Profil",
-      "description": "Information de l'utilisateur",
-      "externalDocs": {
-        "description": "Find out more",
-        "url": "http://swagger.io"
-      }
+      "description": "Information de l'utilisateur"
     },
     {
       "name": "ConnectyCube",
-      "description": "Endpoint concernant ConnectyCube",
-      "externalDocs": {
-        "description": "Find out more",
-        "url": "http://swagger.io"
-      }
+      "description": "Endpoint concernant ConnectyCube"
     },
     {
       "name": "Famille",
-      "description": "Endpoint concernant la famille",
-      "externalDocs": {
-        "description": "Find out more",
-        "url": "http://swagger.io"
-      }
+      "description": "Endpoint concernant la famille"
+    },
+    {
+      "name": "Utilisateurs",
+      "description": "Endpoints concernant les utilisateurs"
     }
   ],
   "paths": {
@@ -302,21 +290,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "membresFamilleIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/getFamily"
                 }
               }
             }
           },
           "404": {
             "description": "Famille non trouvée"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/AllUsers": {
+      "get": {
+        "tags": [
+          "Utilisateurs"
+        ],
+        "summary": "Récupérer tous les utilisateurs",
+        "description": "Récupère les utilisateurs de la base de données",
+        "responses": {
+          "200": {
+            "description": "Liste de tous les utilsateurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllUsers"
+                }
+              }
+            }
           },
           "500": {
             "description": "Erreur interne du serveur"
@@ -344,7 +348,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "hexadecimal"
+            "format": "hexadecimal",
+            "example": "siosee43fees"
           },
           "nom": {
             "type": "string",
@@ -440,6 +445,55 @@
             "example": "VF-3r5T"
           }
         }
+      },
+      "getFamily": {
+        "type": "object",
+        "properties": {
+          "membresFamilleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "hexadecimal"
+            },
+            "example": [
+              "sfe2TE334esff",
+              "usue445SSFEE",
+              "sef3452sFEFES"
+            ]
+          }
+        }
+      },
+      "AllUsers": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "hexadecimal"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "prenom": {
+            "type": "string"
+          }
+        },
+        "example": [
+          {
+            "id": "siosee43fees",
+            "nom": "Durand",
+            "prenom": "Alain"
+          },
+          {
+            "id": "kfls45872fjs",
+            "nom": "Dupont",
+            "prenom": "Marie"
+          },
+          {
+            "id": "klj3894fdsm",
+            "nom": "Martin",
+            "prenom": "Jean"
+          }
+        ]
       }
     }
   }
