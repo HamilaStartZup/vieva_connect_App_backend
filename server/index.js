@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const authRoutes = require('./Routes/auth.routes.js');
 const messagesRoutes = require('./Routes/messages.routes.js');
 const famillesRoutes = require('./Routes/familles.routes.js');
+const utilisateursRoutes = require ('./Routes/utilisateurs.routes.js');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -23,6 +24,7 @@ app.use(cors());
 app.use('/api', authRoutes);
 app.use('/api', messagesRoutes);
 app.use('/api', famillesRoutes);
+app.use('/api', utilisateursRoutes);
 
 // Connexion a la DB
 connectToDatabase();
