@@ -219,6 +219,18 @@
         "summary": "Création d'une famille",
         "description": "Création d'une famille",
         "operationId": "createFamily",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -249,6 +261,18 @@
         "summary": "Ajout de l'utilisateur à une famille",
         "description": "Ajout de l'utilisateur à une famille",
         "operationId": "addToFamily",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -284,6 +308,18 @@
         ],
         "summary": "Récupérer la liste des membres d'une famille",
         "description": "Récupère la liste des membres d'une famille à laquelle appartient l'utilisateur connecté",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "La liste des membres de la famille a été récupérée avec succès",
@@ -321,6 +357,141 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/getFamilyIdByCreator": {
+      "get": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Récupération de l'id d'une famille par son créateur",
+        "description": "Récupération de l'id de la famille grâce à l'id du créateur",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "L'id de la famille a été récupéré avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/getFamilyIdByCreator"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/generateDeeplink/{familyId}": {
+      "get": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Génération d'un deeplink",
+        "description": "Génération d'un deeplink grâce à l'id de la famille",
+        "operationId": "generateDeeplink",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          },
+          {
+            "name": "familyId",
+            "in": "path",
+            "description": "Id d'une famille",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "hexadecimal",
+              "example": "6634ebf9e519ceb178a565dc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Le deeplink a été créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/generateDeeplink"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Non autorisé"
+          },
+          "404": {
+            "description": "Non trouvé"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/joinFamilyByDeeplink": {
+      "post": {
+        "tags": [
+          "Famille"
+        ],
+        "summary": "Rejoindre une famille via Deeplink",
+        "description": "Ajout de l'utilisateur à la famille grâce au deeplink",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
+        "operationId": "joinFamilyByDeeplink",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/joinFamilyByDeeplink"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur ajouté à la famille avec succès"
+          },
+          "400": {
+            "description": "Non valide ou déjà existant"
+          },
+          "404": {
+            "description": "Non trouvé"
           },
           "500": {
             "description": "Erreur interne du serveur"
@@ -494,6 +665,33 @@
             "prenom": "Jean"
           }
         ]
+      },
+      "getFamilyIdByCreator": {
+        "type": "object",
+        "properties": {
+          "familyId": {
+            "type": "string",
+            "example": "664f337bf3ca07c7e6e6b034"
+          }
+        }
+      },
+      "generateDeeplink": {
+        "type": "object",
+        "properties": {
+          "deeplink": {
+            "type": "string",
+            "example": "http://localhost:8080/u/spqlir"
+          }
+        }
+      },
+      "joinFamilyByDeeplink": {
+        "type": "object",
+        "properties": {
+          "deeplink": {
+            "type": "string",
+            "example": "http://localhost:8080/u/spqlir"
+          }
+        }
       }
     }
   }
