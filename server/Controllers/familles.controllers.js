@@ -1,7 +1,12 @@
 const Famille = require("../models/familles");
+const Url = require("../models/urls");
 const { validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const Personne = require("../models/personnes");
+const { createShortUrl } = require('../utils/urlShortener');
+const { generateUniqueCode } = require('../utils/codeGenerator');
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
 
 module.exports = {
   createFamily: async (req, res) => {
@@ -100,39 +105,173 @@ module.exports = {
   },
   getFamily: async (req, res) => {
     try {
-    // Récupérer l'ID de l'utilisateur à partir du token
-    const token = req.cookies.token;
-    const decodedToken = jwtToken.verify(token, "shhhhh");
-    const userId = decodedToken._id;
+      // Récupérer l'ID de l'utilisateur à partir du token
+      const token = req.cookies.token;
+      const decodedToken = jwtToken.verify(token, "shhhhh");
+      const userId = decodedToken._id;
 
-    // Trouver la famille à laquelle appartient l'utilisateur
-    const famille = await Famille.findOne({ listeFamily: userId }).populate("listeFamily");
+      // Trouver la famille à laquelle appartient l'utilisateur
+      const famille = await Famille.findOne({ listeFamily: userId }).populate(
+        "listeFamily"
+      );
 
-    if (!famille) {
-      return res.status(404).json({ message: "Aucune famille trouvée pour cet utilisateur" });
-    }
-
-    // Récupérer la liste des membres de la famille (uniquement leurs IDs)
-    const membresFamilleIds = famille.listeFamily.map(member => member._id);
-
-    res.status(200).json({ membresFamilleIds });
-    }catch (error) {
-        // Gérer les erreurs
-        console.error(error);
-        res
-          .status(500)
-          .json({ message: "Erreur lors de la création de la famille" });
+      if (!famille) {
+        return res
+          .status(404)
+          .json({ message: "Aucune famille trouvée pour cet utilisateur" });
       }
-    }
-};
 
-// Fonction pour générer un code_family unique
-function generateUniqueCode() {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let code = "VF-";
-  for (let i = 0; i < 4; i++) {
-    code += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return code;
-}
+      // Récupérer la liste des membres de la famille (uniquement leurs IDs)
+      const membresFamilleIds = famille.listeFamily.map((member) => member._id);
+
+      res.status(200).json({ membresFamilleIds });
+    } catch (error) {
+      // Gérer les erreurs
+      console.error(error);
+      res
+        .status(500)
+        .json({ message: "Erreur lors de la création de la famille" });
+    }
+  },
+  getFamilyIdByCreator: async (req, res) => {
+    try {
+      const token = req.cookies.token;
+      const decodedToken = jwtToken.verify(token, "shhhhh");
+      const userId = decodedToken._id;
+
+      // Rechercher uniquement les IDs des familles créées par l'utilisateur
+      const familles = await Famille.find({ createurId: userId }, "_id");
+
+      res.status(200).json(
+        familles.map((famille) => ({
+          familyId: famille._id,
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  generateDeeplink: async (req, res) => {
+    try {
+      const { familyId } = req.params;
+
+      // Vérifier si la famille existe et si l'utilisateur est le créateur de la famille
+      const famille = await Famille.findById(familyId);
+      if (!famille) {
+        return res.status(404).json({ message: "Family not found" });
+      }
+
+      const token = req.cookies.token;
+      const decodedToken = jwtToken.verify(token, "shhhhh");
+      const createurId = decodedToken._id;
+
+      if (famille.createurId.toString() !== createurId) {
+        return res
+          .status(403)
+          .json({ message: "Only the creator can generate a deeplink" });
+      }
+
+      // Vérifier si un deeplink existe déjà pour cette famille
+      const existingUrl = await Url.findOne({
+        longUrl: `${req.protocol}://${req.get(
+          "host"
+        )}/api/joinFamilyByDeeplink/${familyId}`,
+      });
+      if (existingUrl) {
+        console.log("Existing short URL found");
+        return res
+          .status(200)
+          .json({
+            deeplink: `${req.protocol}://${req.get("host")}/u/${
+              existingUrl.shortUrl
+            }`,
+          });
+      }
+
+      // Générer le deeplink
+      const longDeeplink = `${req.protocol}://${req.get(
+        "host"
+      )}/api/joinFamilyByDeeplink/${familyId}`;
+
+      // Raccourcir le deeplink
+      const shortUrl = await createShortUrl(longDeeplink);
+
+      res
+        .status(200)
+        .json({
+          deeplink: `${req.protocol}://${req.get("host")}/u/${shortUrl}`,
+        });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+
+  joinFamilyByDeeplink: async (req, res) => {
+    try {
+      const { deeplink } = req.body;
+      const token = req.cookies.token;
+      const decodedToken = jwtToken.verify(token, "shhhhh");
+      const userId = decodedToken._id;
+
+      // Extraire la partie de la deeplink à comparer (la fin)
+      const shortUrlPart = deeplink.split("/").pop();
+      console.log(`Extracted shortUrl part: ${shortUrlPart}`);
+
+      // Rechercher la shortUrl dans la base de données
+      const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
+      if (!urlDoc) {
+        console.log("Short URL not found");
+        return res.status(400).json({ message: "Invalid deeplink format" });
+      }
+
+      const longDeeplink = urlDoc.longUrl;
+      console.log(`Matched longDeeplink: ${longDeeplink}`);
+
+      // Extraire l'identifiant de la famille à partir du longDeeplink
+      const familyIdMatch = longDeeplink.match(/\/([^\/]+)$/);
+      if (!familyIdMatch) {
+        console.log("Invalid longDeeplink format");
+        return res.status(400).json({ message: "Invalid longDeeplink format" });
+      }
+      const familyId = familyIdMatch[1];
+      console.log(`Extracted family ID: ${familyId}`);
+
+      // Vérifier si l'identifiant de la famille est un ObjectId valide
+      if (!ObjectId.isValid(familyId)) {
+        console.log("Invalid family ID format");
+        return res.status(400).json({ message: "Invalid family ID" });
+      }
+
+      // Vérifier si la famille existe
+      const famille = await Famille.findById(familyId);
+      if (!famille) {
+        console.log("Family not found");
+        return res.status(404).json({ message: "Family not found" });
+      }
+
+      // Log the comparison values
+      console.log(
+        `Comparing familyId: ${familyId} with famille._id: ${famille._id}`
+      );
+
+      // Vérifier si l'utilisateur est déjà dans la famille
+      if (famille.listeFamily.includes(userId)) {
+        console.log("User already in family");
+        return res.status(400).json({ message: "User already in family" });
+      }
+
+      // Ajouter l'utilisateur à la famille
+      famille.listeFamily.push(userId);
+      await famille.save();
+
+      console.log("User added to family");
+      res.status(200).json({ message: "User added to family" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  },
+};
