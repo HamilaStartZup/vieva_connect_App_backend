@@ -60,18 +60,16 @@ module.exports = {
         }
     },
 
-    getUsersWithRoleChild: async (req, res) => {
+    AllChildren: async (req, res) => {
         // Recherche des utilisateur qui ont le role child
         try {
-            const users = await Personne.find({ role: 'child' }, '_id');
+            const users = await Personne.find({ role: 'child' }, '_id nom prenom');
     
             if (users.length === 0) {
                 return res.status(404).json({ message: "Aucun utilisateur avec le rôle 'child' trouvé" });
             }
     
-            const userIds = users.map(user => user._id);
-    
-            res.status(200).json(userIds);
+            res.status(200).json(users);
         } catch (error) {
             console.error("Erreur lors de la récupération des utilisateurs:", error);
             res.status(500).json({
