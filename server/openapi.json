@@ -547,7 +547,7 @@
         }
       }
     },
-    "/api/Allchildren": {
+    "/api/AllChildren": {
       "get": {
         "tags": [
           "Utilisateurs"
