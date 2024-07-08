@@ -498,6 +498,81 @@
           }
         }
       }
+    },
+    "/api/addRole": {
+      "put": {
+        "tags": [
+          "Utilisateurs"
+        ],
+        "summary": "Ajout de role",
+        "description": "Ajout du role de l'utilisateur",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "cookie",
+            "description": "token contenant plusieurs informations sur l'utilisateur",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
+        "operationId": "addRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/addRole"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rôle attribué avec succès"
+          },
+          "401": {
+            "description": "Token manquant ou invalide"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          },
+          "422": {
+            "description": "Entrée non valide"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/AllChildren": {
+      "get": {
+        "tags": [
+          "Utilisateurs"
+        ],
+        "summary": "Récupérer les \"enfants\"",
+        "description": "Récupérer les utilisateurs ayant le role \"enfant\"",
+        "responses": {
+          "200": {
+            "description": "Liste des \"enfants\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllUsers"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Aucun utilisateur trouvé"
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
     }
   },
   "security": [
@@ -690,6 +765,15 @@
           "deeplink": {
             "type": "string",
             "example": "http://localhost:8080/u/spqlir"
+          }
+        }
+      },
+      "addRole": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "child"
           }
         }
       }
