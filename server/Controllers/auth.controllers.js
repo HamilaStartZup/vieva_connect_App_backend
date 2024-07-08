@@ -33,9 +33,13 @@ module.exports = {
           error: "Invalid password",
         });
       }
+
       // Génération du token JWT
-      const token = jwtToken.sign({ _id: personne._id }, "shhhhh");
-      res.cookie("token", token, { expire: new Date() + 9999 });
+      const expiresIn = 60 * 60; // temps d'expiration en seconde
+      const token = jwtToken.sign({ _id: personne._id }, "shhhhh", {
+        expiresIn,
+      });
+      res.cookie("token", token, { expire: new Date() + expiresIn * 1000 });
       const { _id, nom, prenom } = personne;
       // Envoi de la réponse avec le token et les informations de l'utilisateur
       return res.json({ token, personne: { _id, nom, prenom, email } });
@@ -44,6 +48,7 @@ module.exports = {
       return res.status(500).json({ error: "Internal Server Error" });
     }
   },
+
   // Fonction pour créer un utilisateur dans la base de données
   create: async (req, res) => {
     try {
