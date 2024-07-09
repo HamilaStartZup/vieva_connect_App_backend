@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {login, create, profile, logout, isAuthenticated, verify_user} = require("../Controllers/auth.controllers.js")
+const {login, create, profile, logout, isAuthenticated, verify_user, verifyToken} = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../openapi.json');
@@ -53,4 +53,5 @@ router.get("/logout", logout);
 // Route de verification pour ConnectyCube
 router.post('/verify_user', verify_user);
 
+router.post('/verifyToken', verifyToken);
 module.exports = router;

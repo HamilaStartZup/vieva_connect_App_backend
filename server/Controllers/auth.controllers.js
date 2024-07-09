@@ -35,7 +35,7 @@ module.exports = {
       }
 
       // Génération du token JWT
-      const expiresIn = 60 * 60; // temps d'expiration en seconde
+      const expiresIn = 60*10; // temps d'expiration en seconde
       const token = jwtToken.sign({ _id: personne._id }, "shhhhh", {
         expiresIn,
       });
@@ -144,6 +144,26 @@ module.exports = {
     } catch (error) {
       console.log("Error in logout controller", error.message);
       return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+  // Fonction pour vérifier la validité du  token 
+  verifyToken: async (req, res) => {
+    try {
+      // Récupération du token dans le corps de la requête
+      const token = req.body.token;
+
+      // Vérification du token
+      const decoded = jwtToken.verify(token, "shhhhh");
+      const personne = await Personne.findById(decoded._id);
+      if (!personne) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      // Réponse avec le statut de vérification
+      res.json({ valid: true });
+    } catch (err) {
+      // Gestion des erreurs de vérification
+      res.status(401).json({ error: "Invalid token" });
     }
   },
   // Fonction pour vérifier le token avec ConnectyCube
