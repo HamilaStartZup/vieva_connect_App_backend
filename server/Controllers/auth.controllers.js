@@ -90,8 +90,11 @@ module.exports = {
       await newPersonne.save();
 
       // Génération du token JWT pour le nouvel utilisateur et placement dans un cookie
-      const token = jwtToken.sign({ _id: newPersonne._id }, "shhhhh");
-      res.cookie("token", token, { expire: new Date() + 9999 });
+      const expiresIn = 60*10; // temps d'expiration en seconde
+      const token = jwtToken.sign({ _id: personne._id }, "shhhhh", {
+        expiresIn,
+      });
+      res.cookie("token", token, { expire: new Date() + expiresIn * 1000 });
       // Retourne le nouvel utilisateur avec le token dans le cookie
       return res.json({ token, personne: newPersonne });
     } catch (error) {
@@ -137,7 +140,7 @@ module.exports = {
   // Fonction pour se déconnecter en supprimant le cookie
   logout: async (req, res) => {
     try {
-      res.clearCookie("token");
+      res.clearCookie("Authtoken");
       res.json({
         message: "Utilisateur s'est déconnecté",
       });
