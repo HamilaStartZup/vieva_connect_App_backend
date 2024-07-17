@@ -35,14 +35,18 @@ module.exports = {
       }
 
       // Génération du token JWT
-      const expiresIn = 60*10; // temps d'expiration en seconde
+      const expiresIn = 60*60*24*14; // temps d'expiration en seconde
+      // const expiresIn = 60; // temps d'expiration en seconde
+
+      const expirationTime = new Date().getTime() + expiresIn * 1000;
+
       const token = jwtToken.sign({ _id: personne._id }, "shhhhh", {
         expiresIn,
       });
       res.cookie("token", token, { expire: new Date() + expiresIn * 1000 });
       const { _id, nom, prenom } = personne;
       // Envoi de la réponse avec le token et les informations de l'utilisateur
-      return res.json({ token, personne: { _id, nom, prenom, email } });
+      return res.json({ token, expirationTime, personne: { _id, nom, prenom, email } });
     } catch (error) {
       console.log("Error in login controller", error.message);
       return res.status(500).json({ error: "Internal Server Error" });
