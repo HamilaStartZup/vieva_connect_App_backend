@@ -95,7 +95,7 @@ module.exports = {
 
       // Génération du token JWT pour le nouvel utilisateur et placement dans un cookie
       const expiresIn = 60*10; // temps d'expiration en seconde
-      const token = jwtToken.sign({ _id: personne._id }, "shhhhh", {
+      const token = jwtToken.sign({ _id: newPersonne._id }, "shhhhh", {
         expiresIn,
       });
       res.cookie("token", token, { expire: new Date() + expiresIn * 1000 });
