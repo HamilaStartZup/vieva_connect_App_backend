@@ -29,6 +29,10 @@
     {
       "name": "Utilisateurs",
       "description": "Endpoints concernant les utilisateurs"
+    },
+    {
+      "name": "Alertes",
+      "description": "Endpoint concernant les alertes"
     }
   ],
   "paths": {
@@ -573,6 +577,190 @@
           }
         }
       }
+    },
+    "/api/verifyToken": {
+      "post": {
+        "tags": [
+          "Authentification"
+        ],
+        "summary": "Vérification du token",
+        "description": "Vérification de la validité du token",
+        "operationId": "verifyToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Token à vérifier",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token valide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token non valide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne du serveur"
+          }
+        }
+      }
+    },
+    "/api/createAlerte": {
+      "post": {
+        "tags": [
+          "Alertes"
+        ],
+        "summary": "Création d'une alerte",
+        "description": "Création d'une nouvelle alerte",
+        "operationId": "createAlerte",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "Token d'authentification JWT",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDvffFTDYDSFZ71QjNL0oeTul0I"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date de l'alerte"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Type de l'alerte"
+                  },
+                  "coordinates": {
+                    "type": "array",
+                    "description": "Coordonnées géographiques de l'alerte",
+                    "items": {
+                      "type": "number"
+                    },
+                    "example": [
+                      45.764043,
+                      4.835659
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Alerte créée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Alerte créée avec succès"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token d'authentification manquant ou invalide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid authentication token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation des données",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid coordinates"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne du serveur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Erreur lors de la création de l'alerte"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "security": [
@@ -774,6 +962,14 @@
           "role": {
             "type": "string",
             "example": "child"
+          }
+        }
+      },
+      "verifyToken": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
           }
         }
       }
