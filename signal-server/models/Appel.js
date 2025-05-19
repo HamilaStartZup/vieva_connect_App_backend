@@ -1,4 +1,3 @@
-// signalisation/models/Appel.js
 const mongoose = require("mongoose");
 
 const appelSchema = new mongoose.Schema({
