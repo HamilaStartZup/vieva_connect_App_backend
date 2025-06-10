@@ -139,12 +139,17 @@ module.exports = {
       const decodedToken = jwtToken.verify(token, "shhhhh");
       const userId = decodedToken._id;
 
-      // Rechercher uniquement les IDs des familles créées par l'utilisateur
-      const familles = await Famille.find({ createurId: userId }, "_id");
+      // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
+      const familles = await Famille.find(
+        { createurId: userId },
+        "_id nom description"
+      );
 
       res.status(200).json(
         familles.map((famille) => ({
           familyId: famille._id,
+          nom: famille.nom,
+          description: famille.description,
         }))
       );
     } catch (error) {
