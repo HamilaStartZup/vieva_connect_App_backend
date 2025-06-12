@@ -8,6 +8,7 @@ const utilisateursRoutes = require('./Routes/utilisateurs.routes.js');
 const urlRoutes = require('./Routes/urls.routes.js');
 const alertesRoutes = require('./Routes/alertes.routes.js');
 const notificationsRoutes = require('./Routes/notifications.routes.js'); // Nouvelle route
+const contactRoutes = require('./Routes/contacts.routes.js')
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -31,6 +32,7 @@ app.use('/api', utilisateursRoutes);
 app.use('/api', urlRoutes);
 app.use('/api', alertesRoutes);
 app.use('/api/notifications', notificationsRoutes); // Route pour les notifications de proximité
+app.use('/api/contacts', contactRoutes);
 
 // Connexion à la base de données
 connectToDatabase();
