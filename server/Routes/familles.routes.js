@@ -6,7 +6,7 @@ const { check } = require("express-validator");
 // Route pour créer une famille
 router.post("/createFamily", [
   check("nom", "Family name is required").notEmpty(),
-  check("description", "Description is required").notEmpty()
+  // check("description", "Description is required").notEmpty()
 ], createFamily);
 
 // Route pour ajouter un utilisateur à une famille
