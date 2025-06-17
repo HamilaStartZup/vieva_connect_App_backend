@@ -190,7 +190,7 @@ module.exports = {
       // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
       const familles = await Famille.find(
         { createurId: userId },
-        "_id nom description"
+        "_id nom description code_family"
       );
 
       res.status(200).json(
@@ -198,6 +198,7 @@ module.exports = {
           familyId: famille._id,
           nom: famille.nom,
           description: famille.description,
+          code_family: famille.code_family,
         }))
       );
     } catch (error) {
