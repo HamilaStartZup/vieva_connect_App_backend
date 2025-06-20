@@ -238,7 +238,7 @@ module.exports = {
         return res
           .status(200)
           .json({
-            deeplink: `${req.protocol}://${req.get("host")}/u/${
+            deeplink: `${req.protocol}://${req.get("host")}/api/u/${
               existingUrl.shortUrl
             }`,
           });
@@ -263,6 +263,8 @@ module.exports = {
     }
   },
 
+
+  
   joinFamilyByDeeplink: async (req, res) => {
     try {
       const { deeplink } = req.body;
@@ -644,5 +646,126 @@ module.exports = {
         error: "Erreur lors de la définition de la famille d'urgence"
       });
     }
-  }
+  },
+
+
+  /**
+   * Version améliorée du contrôleur POST existant
+   * Maintient la compatibilité avec l'API existante
+   */
+  // joinFamilyByDeeplink: async (req, res) => {
+  //   try {
+  //     console.log("Processing POST deeplink join request");
+
+  //     const errors = validationResult(req);
+  //     if (!errors.isEmpty()) {
+  //       console.log("Validation errors:", errors.array());
+  //       return res.status(422).json({
+  //         error: errors.array()[0].msg,
+  //       });
+  //     }
+
+  //     const { deeplink } = req.body;
+  //     console.log("Deeplink received:", deeplink);
+
+  //     // Vérification de l'authentification
+  //     const token = req.cookies.token;
+  //     if (!token) {
+  //       console.log("Missing authentication token");
+  //       return res.status(401).json({
+  //         error: "Token d'authentification manquant"
+  //       });
+  //     }
+
+  //     let decodedToken;
+  //     try {
+  //       console.log("Verifying token");
+  //       decodedToken = jwtToken.verify(token, process.env.JWT_SECRET || "shhhhh");
+  //     } catch (error) {
+  //       console.log("Invalid authentication token:", error.message);
+  //       return res.status(401).json({
+  //         error: "Token d'authentification invalide"
+  //       });
+  //     }
+
+  //     const userId = decodedToken._id;
+  //     console.log("User ID from token:", userId);
+
+  //     // Extraire la partie shortUrl du deeplink
+  //     const shortUrlPart = deeplink.split("/").pop();
+  //     console.log(`Extracted shortUrl part: ${shortUrlPart}`);
+
+  //     // Rechercher dans la base de données
+  //     const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
+  //     if (!urlDoc) {
+  //       console.log("Short URL not found");
+  //       return res.status(400).json({ 
+  //         error: "Lien d'invitation invalide" 
+  //       });
+  //     }
+
+  //     const longDeeplink = urlDoc.longUrl;
+  //     console.log(`Matched longDeeplink: ${longDeeplink}`);
+
+  //     // Extraire l'ID de famille
+  //     const familyIdMatch = longDeeplink.match(/\/joinFamilyByDeeplink\/([^\/]+)$/);
+  //     if (!familyIdMatch) {
+  //       console.log("Invalid longDeeplink format");
+  //       return res.status(400).json({ 
+  //         error: "Format de lien invalide" 
+  //       });
+  //     }
+
+  //     const familyId = familyIdMatch[1];
+  //     console.log(`Extracted family ID: ${familyId}`);
+
+  //     // Validation ObjectId
+  //     if (!ObjectId.isValid(familyId)) {
+  //       console.log("Invalid family ID format");
+  //       return res.status(400).json({ 
+  //         error: "Identifiant de famille invalide" 
+  //       });
+  //     }
+
+  //     // Vérifier l'existence de la famille
+  //     const famille = await Famille.findById(familyId);
+  //     if (!famille) {
+  //       console.log("Family not found");
+  //       return res.status(404).json({ 
+  //         error: "Famille non trouvée" 
+  //       });
+  //     }
+
+  //     // Vérifier si l'utilisateur est déjà membre
+  //     if (famille.listeFamily.includes(userId)) {
+  //       console.log("User already in family");
+  //       return res.status(400).json({ 
+  //         message: "Vous êtes déjà membre de cette famille" 
+  //       });
+  //     }
+
+  //     // Ajouter l'utilisateur à la famille
+  //     console.log("Adding user to family");
+  //     famille.listeFamily.push(userId);
+  //     await famille.save();
+
+  //     console.log("User added to family successfully");
+      
+  //     // RGPD: Réponse avec informations minimales
+  //     res.status(200).json({ 
+  //       success: true,
+  //       message: "Vous avez rejoint la famille avec succès",
+  //       famille: {
+  //         nom: famille.nom,
+  //         description: famille.description
+  //       }
+  //     });
+
+  //   } catch (error) {
+  //     console.error("Error in joinFamilyByDeeplink:", error.message);
+  //     res.status(500).json({ 
+  //       error: "Erreur serveur lors de l'ajout à la famille" 
+  //     });
+  //   }
+  // },
 };
