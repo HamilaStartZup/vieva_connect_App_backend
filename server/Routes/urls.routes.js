@@ -1,6 +1,6 @@
 /**
- * Routes/urls.routes.js - Backend simplifié
- * Redirection deeplink vers app mobile
+ * Routes/urls.routes.js CORRIGÉ
+ * Debug ajouté pour identifier pourquoi l'app ne récupère pas les données
  */
 
 const express = require('express');
@@ -10,12 +10,13 @@ const Famille = require('../models/familles');
 const jwtToken = require('jsonwebtoken');
 
 /**
- * Route deeplink - redirige vers l'app mobile
+ * Route deeplink avec debug complet
  * @route GET /u/:shortUrl
  */
 router.get('/u/:shortUrl', async (req, res) => {
   try {
     console.log(`🔗 Processing deeplink: ${req.params.shortUrl}`);
+    console.log(`📱 User-Agent: ${req.get('User-Agent')}`);
     
     const { shortUrl } = req.params;
     
@@ -26,11 +27,13 @@ router.get('/u/:shortUrl', async (req, res) => {
       return res.status(404).send('Lien invalide');
     }
 
+    console.log(`✅ Found URL: ${urlDoc.longUrl}`);
+
     // Vérifier si c'est un deeplink famille
     const familyIdMatch = urlDoc.longUrl.match(/\/joinFamilyByDeeplink\/([^\/\?]+)/);
     
     if (!familyIdMatch) {
-      // URL normale - redirection classique
+      // URL normale
       console.log(`🔗 Normal URL redirection`);
       return res.redirect(301, urlDoc.longUrl);
     }
@@ -47,6 +50,20 @@ router.get('/u/:shortUrl', async (req, res) => {
     }
 
     console.log(`✅ Found family: ${famille.nom}`);
+    console.log(`🔍 Family data check:`, {
+      nom: famille.nom,
+      description: famille.description,
+      code_family: famille.code_family
+    });
+
+    // ⚠️ VÉRIFICATION: S'assurer que toutes les données existent
+    if (!famille.nom || !famille.description || !famille.code_family) {
+      console.error(`❌ Missing family data:`, {
+        nom: !!famille.nom,
+        description: !!famille.description,
+        code_family: !!famille.code_family
+      });
+    }
 
     // Vérification token
     const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
@@ -79,7 +96,7 @@ router.get('/u/:shortUrl', async (req, res) => {
       console.log(`🔒 No token - need login`);
     }
 
-    // Données pour l'app mobile
+    // ✅ FORMAT EXACT 
     const appData = {
       action: userAction,
       family: {
@@ -89,19 +106,75 @@ router.get('/u/:shortUrl', async (req, res) => {
       }
     };
 
-    // Redirection vers l'app
-    const encodedData = encodeURIComponent(JSON.stringify(appData));
+    // ⚠️ DEBUG COMPLET: Vérifier chaque étape
+    console.log("🐛 === DEBUG DEEPLINK FORMAT ===");
+    console.log("🐛 1. Raw appData:", appData);
+    console.log("🐛 2. JSON.stringify:", JSON.stringify(appData));
+    
+    const jsonString = JSON.stringify(appData);
+    console.log("🐛 3. JSON string length:", jsonString.length);
+    
+    const encodedData = encodeURIComponent(jsonString);
+    console.log("🐛 4. Encoded data:", encodedData);
+    console.log("🐛 5. Encoded length:", encodedData.length);
+    
     const mobileDeeplink = `grandpaapp://?data=${encodedData}`;
+    console.log("🐛 6. Final deeplink:", mobileDeeplink);
+    console.log("🐛 7. Total length:", mobileDeeplink.length);
+
+    // ⚠️ TEST DE DÉCODAGE pour s'assurer que ça marche
+    try {
+      const testDecode = decodeURIComponent(encodedData);
+      const testParse = JSON.parse(testDecode);
+      console.log("✅ Test décodage OK:", testParse);
+      console.log("✅ Action récupérée:", testParse.action);
+      console.log("✅ Code famille récupéré:", testParse.family?.code_family);
+      
+      // Vérifier structure exacte
+      const hasRequiredFields = testParse.action && 
+                               testParse.family && 
+                               testParse.family.nom && 
+                               testParse.family.description && 
+                               testParse.family.code_family;
+      console.log("✅ Structure complète:", hasRequiredFields);
+      
+    } catch (error) {
+      console.error("❌ ERREUR test décodage:", error.message);
+      console.error("❌ Données problématiques:", encodedData);
+    }
+
+    // ⚠️ COMPARAISON avec format attendu exact
+    const expectedSample = {
+      action: "need_login",
+      family: {
+        nom: "Family urgence",
+        description: "famille d'urgence",
+        code_family: "VF-zTLS"
+      }
+    };
+    const expectedEncoded = encodeURIComponent(JSON.stringify(expectedSample));
+    console.log("🎯 Format attendu exemple:", `grandpaapp://?data=${expectedEncoded}`);
+    console.log("🎯 Format généré actuel:", mobileDeeplink);
+
+    // ⚠️ VÉRIFICATION caractères spéciaux
+    const hasSpecialChars = jsonString.includes('"') || 
+                           jsonString.includes("'") || 
+                           jsonString.includes('\\');
+    console.log("🔍 Caractères spéciaux détectés:", hasSpecialChars);
 
     console.log(`📱 Redirecting - Action: ${userAction}`);
     console.log(`📊 RGPD Log - Family: ${famille.nom}, Action: ${userAction}, IP: ${req.ip}`);
 
+    // ⚠️ POINT CRITIQUE: Redirection vers l'app
+    console.log("🚀 REDIRECTION VERS L'APP...");
     return res.redirect(302, mobileDeeplink);
 
   } catch (error) {
     console.error(`💥 Error: ${error.message}`);
+    console.error(`💥 Stack: ${error.stack}`);
     return res.status(500).send('Erreur serveur');
   }
 });
+
 
 module.exports = router;
