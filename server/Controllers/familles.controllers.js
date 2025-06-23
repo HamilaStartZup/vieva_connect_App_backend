@@ -443,154 +443,82 @@ generateDeeplink: async (req, res) => {
  * Extrait code_family depuis JSON deeplink
  */
 
-joinFamilyByDeeplink: async (req, res) => {
+
+ joinFamilyByDeeplink: async (req, res) => {
   try {
-    console.log("Processing deeplink join request");
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.log("Validation errors:", errors.array());
-      return res.status(422).json({ error: errors.array()[0].msg });
-    }
-
     const { deeplink } = req.body;
-    console.log("Deeplink received:", deeplink);
+    if (!deeplink || typeof deeplink !== 'string') {
+      return res.status(400).json({ message: "Missing or invalid deeplink" });
+    }
+    console.log('📩 joinFamilyByDeeplink body:', req.body);
 
-    // Vérification token
+    // Authentification
     const token = req.cookies.token;
     if (!token) {
-      console.log("Missing authentication token");
-      return res.status(401).json({ error: "Token d'authentification manquant" });
+      return res.status(401).json({ message: "Token manquant" });
     }
-
-    let decodedToken;
+    let decoded;
     try {
-      console.log("Verifying token...");
-      decodedToken = jwtToken.verify(token, "shhhhh");
-    } catch (error) {
-      console.log("Invalid authentication token:", error.message);
-      return res.status(401).json({ error: "Token d'authentification invalide" });
+      decoded = jwtToken.verify(token, "shhhhh");
+    } catch {
+      return res.status(401).json({ message: "Token invalide" });
     }
+    const userId = decoded._id;
 
-    const userId = decodedToken._id;
-    console.log("User ID:", userId);
+    // Extrait le shortUrl
+    const shortUrlPart = deeplink.split('/').pop();
+    console.log(`Extracted shortUrl part: ${shortUrlPart}`);
 
-    // Extraction code_family
-    let familyCode;
-    
-    // Méthode 1: Depuis JSON grandpaapp://
-    if (deeplink.includes('grandpaapp://?data=')) {
-      try {
-        console.log("Extracting from grandpaapp deeplink");
-        
-        const dataMatch = deeplink.match(/data=([^&]+)/);
-        if (!dataMatch) {
-          return res.status(400).json({ error: "Pas de paramètre data" });
-        }
-
-        const encodedData = dataMatch[1];
-        const jsonString = decodeURIComponent(encodedData);
-        const linkData = JSON.parse(jsonString);
-
-        console.log("Decoded data:", JSON.stringify(linkData, null, 2));
-
-        if (!linkData.family || !linkData.family.code_family) {
-          return res.status(400).json({ error: "Code famille manquant" });
-        }
-
-        familyCode = linkData.family.code_family;
-        console.log("Family code from JSON:", familyCode);
-
-      } catch (error) {
-        console.log("Error parsing JSON:", error.message);
-        return res.status(400).json({ error: "JSON invalide" });
-      }
-    }
-    // Méthode 2: Fallback depuis shortUrl
-    else {
-      console.log("Using fallback method");
-      
-      const shortUrlPart = deeplink.split("/").pop();
-      console.log("ShortUrl part:", shortUrlPart);
-
-      const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
-      if (!urlDoc) {
-        console.log("Short URL not found");
-        return res.status(400).json({ error: "Lien invalide" });
-      }
-
+    // 1️⃣ Essaie la table Url
+    let familyId;
+    const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
+    if (urlDoc) {
+      console.log('✅ Short URL trouvée en base');
       const longDeeplink = urlDoc.longUrl;
-      const familyIdMatch = longDeeplink.match(/\/joinFamilyByDeeplink\/([^\/]+)$/);
-      
-      if (!familyIdMatch) {
-        return res.status(400).json({ error: "Format lien invalide" });
+      const m = longDeeplink.match(/\/joinFamilyByDeeplink\/([^\/]+)$/);
+      familyId = m && m[1];
+    } else {
+      // 2️⃣ Fallback : cherche direct dans Famille via code_family
+      console.log('⚠️ Short URL non trouvée, fallback sur code_family');
+      const familleByCode = await Famille.findOne({ code_family: shortUrlPart });
+      if (familleByCode) {
+        console.log('✅ Famille trouvée par code_family');
+        familyId = familleByCode._id.toString();
       }
-
-      const familyId = familyIdMatch[1];
-      
-      if (!ObjectId.isValid(familyId)) {
-        return res.status(400).json({ error: "ID famille invalide" });
-      }
-
-      const tempFamily = await Famille.findById(familyId);
-      if (!tempFamily) {
-        return res.status(404).json({ error: "Famille non trouvée" });
-      }
-
-      familyCode = tempFamily.code_family;
-      console.log("Family code from DB:", familyCode);
     }
 
-    // Recherche famille par code
-    console.log("Looking up family by code:", familyCode);
-    const famille = await Famille.findOne({ code_family: familyCode });
-    
+    if (!familyId) {
+      console.log("❌ Aucun familyId déterminé");
+      return res.status(400).json({ message: "Invalid deeplink format" });
+    }
+
+    // Vérification ObjectId
+    if (!ObjectId.isValid(familyId)) {
+      return res.status(400).json({ message: "Invalid family ID format" });
+    }
+
+    // Récupère la famille
+    const famille = await Famille.findById(familyId);
     if (!famille) {
-      console.log("Family not found with code:", familyCode);
-      return res.status(404).json({ error: "Famille non trouvée" });
+      return res.status(404).json({ message: "Family not found" });
     }
 
-    console.log("Found family:", famille.nom);
-
-    // Vérifier si déjà membre
+    // Vérifie si déjà membre
     if (famille.listeFamily.includes(userId)) {
-      console.log("User already member");
-      console.log(`📊 RGPD Log - Already member: ${famille.nom}, IP: ${req.ip}`);
-      
-      return res.status(200).json({ 
-        success: true,
-        message: "Déjà membre de cette famille",
-        famille: {
-          nom: famille.nom,
-          description: famille.description,
-          code_family: famille.code_family
-        }
-      });
+      return res.status(400).json({ message: "User already in family" });
     }
 
-    // Ajouter utilisateur
-    console.log("Adding user to family");
+    // Ajoute et sauve
     famille.listeFamily.push(userId);
     await famille.save();
 
-    console.log("User added successfully");
-    console.log(`📊 RGPD Log - User added: ${famille.nom}, IP: ${req.ip}`);
-    
-    res.status(200).json({ 
-      success: true,
-      message: "Rejoint la famille avec succès",
-      famille: {
-        nom: famille.nom,
-        description: famille.description,
-        code_family: famille.code_family
-      }
-    });
-
+    console.log("✅ User added to family");
+    return res.status(200).json({ message: "User added to family" });
   } catch (error) {
-    console.error("Error in joinFamilyByDeeplink:", error.message);
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("💥 joinFamilyByDeeplink error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
-},
+}, 
 
   /**
    * Modifier une famille existante
