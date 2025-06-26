@@ -236,52 +236,82 @@ module.exports = {
     }
   },
 
+  // getFamilyIdByCreator: async (req, res) => {
+  //   try {
+  //     console.log("Getting families by creator");
+
+  //     const token = req.cookies.token;
+  //     if (!token) {
+  //       console.log("Missing authentication token");
+  //       return res.status(401).json({ error: "Token d'authentification manquant" });
+  //     }
+
+  //     let decodedToken;
+  //     try {
+  //       console.log("Verifying token...");
+  //       decodedToken = jwtToken.verify(token, "shhhhh");
+  //     } catch (error) {
+  //       console.log("Invalid authentication token:", error.message);
+  //       return res.status(401).json({ error: "Token d'authentification invalide" });
+  //     }
+
+  //     const userId = decodedToken._id;
+  //     console.log("Creator ID from token:", userId);
+
+  //     // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
+  //     const familles = await Famille.find(
+  //       { createurId: userId },
+  //       "_id nom description code_family urgence"
+  //     );
+
+  //     console.log(`Found ${familles.length} families for creator`);
+  //     console.log(`📊 RGPD Log - Creator families retrieved, IP: ${req.ip}`);
+
+  //     res.status(200).json({
+  //       success: true,
+  //       familles: familles.map((famille) => ({
+  //         familyId: famille._id,
+  //         nom: famille.nom,
+  //         description: famille.description,
+  //         code_family: famille.code_family,
+  //         urgence: famille.urgence
+  //       }))
+  //     });
+  //   } catch (error) {
+  //     console.error("Error in getFamilyIdByCreator:", error.message);
+  //     res.status(500).json({ error: "Erreur serveur" });
+  //   }
+  // },
+
+
   getFamilyIdByCreator: async (req, res) => {
     try {
-      console.log("Getting families by creator");
-
       const token = req.cookies.token;
-      if (!token) {
-        console.log("Missing authentication token");
-        return res.status(401).json({ error: "Token d'authentification manquant" });
-      }
-
-      let decodedToken;
-      try {
-        console.log("Verifying token...");
-        decodedToken = jwtToken.verify(token, "shhhhh");
-      } catch (error) {
-        console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ error: "Token d'authentification invalide" });
-      }
+      const decodedToken = jwtToken.verify(token, "shhhhh");
 
       const userId = decodedToken._id;
-      console.log("Creator ID from token:", userId);
 
       // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
       const familles = await Famille.find(
         { createurId: userId },
-        "_id nom description code_family urgence"
+        "_id nom description code_family"
       );
 
-      console.log(`Found ${familles.length} families for creator`);
-      console.log(`📊 RGPD Log - Creator families retrieved, IP: ${req.ip}`);
-
-      res.status(200).json({
-        success: true,
-        familles: familles.map((famille) => ({
+      res.status(200).json(
+        familles.map((famille) => ({
           familyId: famille._id,
           nom: famille.nom,
           description: famille.description,
           code_family: famille.code_family,
-          urgence: famille.urgence
+
         }))
-      });
+      );
     } catch (error) {
-      console.error("Error in getFamilyIdByCreator:", error.message);
-      res.status(500).json({ error: "Erreur serveur" });
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
     }
   },
+
 
   // generateDeeplink: async (req, res) => {
   //   try {
