@@ -1,0 +1,10 @@
+{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.vieva_connect",
+      "sha256_cert_fingerprints": [
+        "6D:3F:05:B0:73:51:05:BE:93:4A:1F:43:B7:61:28:6C:09:80:B6:FB:49:CF:7A:2C:97:A1:EF:C1:46:F1:10:31"
+      ]
+    }
+}
