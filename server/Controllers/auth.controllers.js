@@ -74,7 +74,7 @@ module.exports = {
 
       const personne = await Personne.findOne({ email });
       if (personne) {
-        return res.status(400).json({ error: "User already exists" });
+        return res.status(409).json({ error: "User already exists" });
       }
 
       // Hachage du mot de passe avec bcrypt
