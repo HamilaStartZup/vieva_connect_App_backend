@@ -886,5 +886,86 @@ generateDeeplink: async (req, res) => {
         error: "Erreur lors de la définition de la famille d'urgence"
       });
     }
+  },
+
+
+/**
+ * Récupère les IDs des personnes âgées (créateurs) des familles d'urgence dont l'utilisateur fait partie
+ */
+getElderlyFromUrgentFamilies: async (req, res) => {
+  try {
+    console.log("Starting getElderlyFromUrgentFamilies process");
+
+    // Récupération et vérification du token
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("Missing authentication token");
+      return res.status(401).json({ 
+        error: "Token d'authentification manquant" 
+      });
+    }
+
+    let decodedToken;
+    try {
+      console.log("Verifying token...");
+      decodedToken = jwtToken.verify(token, "shhhhh");
+    } catch (error) {
+      console.log("Invalid authentication token:", error.message);
+      return res.status(401).json({ 
+        error: "Token d'authentification invalide" 
+      });
+    }
+
+    const userId = decodedToken._id;
+    console.log("User ID from token:", userId);
+
+    // Rechercher toutes les familles d'urgence dont l'utilisateur fait partie
+    // MAIS où il n'est pas le créateur (car les créateurs sont les personnes âgées)
+    const famillesUrgence = await Famille.find({
+      listeFamily: userId,
+      urgence: true,
+      createurId: { $ne: userId } // Exclure les familles créées par l'utilisateur
+    }).populate('createurId', 'nom prenom email');
+
+    console.log(`Found ${famillesUrgence.length} urgent families where user is member`);
+
+    // Extraire les informations des personnes âgées (créateurs)
+    const personnesAgees = famillesUrgence.map(famille => {
+      console.log(`Processing family: ${famille.nom} with elderly: ${famille.createurId.nom} ${famille.createurId.prenom}`);
+      return {
+        personneAgeeId: famille.createurId._id,
+        nom: famille.createurId.nom,
+        prenom: famille.createurId.prenom,
+        email: famille.createurId.email,
+        familleNom: famille.nom,
+        familleId: famille._id
+      };
+    });
+
+    // Éliminer les doublons au cas où une personne âgée aurait créé plusieurs familles d'urgence
+    const personnesAgeesUniques = personnesAgees.reduce((acc, current) => {
+      const exists = acc.find(item => item.personneAgeeId.toString() === current.personneAgeeId.toString());
+      if (!exists) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+
+    console.log(`Returning ${personnesAgeesUniques.length} unique elderly people from urgent families`);
+    console.log(`📊 RGPD Log - Elderly from urgent families retrieved for user, IP: ${req.ip}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Personnes âgées des familles d'urgence récupérées avec succès",
+      personnesAgees: personnesAgeesUniques,
+      count: personnesAgeesUniques.length
+    });
+
+  } catch (error) {
+    console.error("Error in getElderlyFromUrgentFamilies:", error.message);
+    res.status(500).json({
+      error: "Erreur lors de la récupération des personnes âgées"
+    });
   }
+},
 };

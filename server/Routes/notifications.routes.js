@@ -5,7 +5,9 @@ const {
   initialiserListeNotifications, 
   verifierProximite, 
   getPersonnesANotifier,
-  declencherAlerteUrgence 
+  declencherAlerteUrgence,
+  updateFcmToken,
+  confirmerPriseEnCharge
 } = require("../Controllers/notifications.controllers");
 
 /**
@@ -67,5 +69,12 @@ router.post("/alerte-urgence", [
     .isString()
     .isLength({ max: 500 })
 ], declencherAlerteUrgence);
+
+
+// Route pour mettre à jour le token FCM
+router.post("/update-fcm-token", updateFcmToken);
+
+// Route pour confirmer la prise en charge
+router.post("/confirmer-prise-en-charge", confirmerPriseEnCharge);
 
 module.exports = router;

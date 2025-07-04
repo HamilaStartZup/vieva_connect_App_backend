@@ -11,6 +11,7 @@ const {
   deleteFamily,
   getFamilleUrgence,
   setFamilleUrgence,
+  getElderlyFromUrgentFamilies,
 } = require("../Controllers/familles.controllers");
 const { check } = require("express-validator");
 
@@ -105,5 +106,10 @@ router.post(
   joinFamilyByDeeplink
 );
 
+// Route pour récuperer les parents des familles dont l'utilisateur fait partie
+router.get(
+  "/getElderly",
+  getElderlyFromUrgentFamilies
+);
 
 module.exports = router;
