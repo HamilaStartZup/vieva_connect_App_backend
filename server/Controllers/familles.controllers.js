@@ -3,10 +3,11 @@ const Url = require("../models/urls");
 const { validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const Personne = require("../models/personnes");
-const { createShortUrl } = require('../utils/urlShortener');
-const { generateUniqueCode } = require('../utils/codeGenerator');
+const { createShortUrl } = require("../utils/urlShortener");
+const { generateUniqueCode } = require("../utils/codeGenerator");
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Types;
+const NotificationInitializationService = require("../utils/notificationInitializationService");
 
 module.exports = {
   createFamily: async (req, res) => {
@@ -31,7 +32,7 @@ module.exports = {
       if (!token) {
         console.log("Missing authentication token");
         return res.status(401).json({
-          error: "Token d'authentification manquant"
+          error: "Token d'authentification manquant",
         });
       }
 
@@ -42,7 +43,7 @@ module.exports = {
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
         return res.status(401).json({
-          error: "Token d'authentification invalide"
+          error: "Token d'authentification invalide",
         });
       }
 
@@ -51,11 +52,13 @@ module.exports = {
 
       // Si urgence est définie sur true, désactiver l'urgence sur toutes les autres familles du créateur
       if (urgence === true) {
-        console.log("Family marked as urgent - deactivating other urgent families");
+        console.log(
+          "Family marked as urgent - deactivating other urgent families"
+        );
         await Famille.updateMany(
-          { 
+          {
             createurId: createurId,
-            urgence: true
+            urgence: true,
           },
           { $set: { urgence: false } }
         );
@@ -80,30 +83,61 @@ module.exports = {
         code_family,
         createurId,
         listeFamily: [createurId], // Ajouter le createurId à la liste des membres de la famille
-        urgence: urgence === true ? true : false // Gérer explicitement le champ urgence
+        urgence: urgence === true ? true : false, // Gérer explicitement le champ urgence
       });
 
       console.log("Creating family with data:", {
         nom: nouvelleFamille.nom,
         description: nouvelleFamille.description,
         urgence: nouvelleFamille.urgence,
-        createurId: nouvelleFamille.createurId
+        createurId: nouvelleFamille.createurId,
       });
 
       // Enregistrer la nouvelle famille dans la base de données
       const familleCréée = await nouvelleFamille.save();
-      
-      console.log("Family created successfully with urgence:", familleCréée.urgence);
+
+      console.log(
+        "Family created successfully with urgence:",
+        familleCréée.urgence
+      );
+
+      // Gérer automatiquement la liste de notifications selon le statut d'urgence
+      console.log(
+        "Handling notification list initialization based on urgency status"
+      );
+      const notificationResult =
+        await NotificationInitializationService.handleFamilyUrgencyChange(
+          createurId,
+          urgence === true
+        );
+
+      if (notificationResult.success) {
+        console.log(
+          "Notification list handling successful:",
+          notificationResult.action
+        );
+        if (notificationResult.notificationListId) {
+          console.log(
+            "Notification list ID:",
+            notificationResult.notificationListId
+          );
+        }
+      } else {
+        console.warn(
+          "Notification list handling failed:",
+          notificationResult.error
+        );
+        // Ne pas faire échouer la création de famille pour une erreur de liste de notification
+      }
 
       // Répondre avec la famille créée
       res.status(201).json(familleCréée);
-
     } catch (error) {
       // Gérer les erreurs
       console.error("Error in createFamily controller:", error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Erreur lors de la création de la famille",
-        details: error.message 
+        details: error.message,
       });
     }
   },
@@ -125,7 +159,9 @@ module.exports = {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ error: "Token d'authentification manquant" });
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification manquant" });
       }
 
       let decodedToken;
@@ -134,7 +170,9 @@ module.exports = {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ error: "Token d'authentification invalide" });
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification invalide" });
       }
 
       const userId = decodedToken._id;
@@ -161,7 +199,9 @@ module.exports = {
       // Verifie si l'utilisateur est deja dans la famille
       if (famille.listeFamily.includes(userId)) {
         console.log("User already in family");
-        return res.status(400).json({ error: "Utilisateur déjà membre de cette famille" });
+        return res
+          .status(400)
+          .json({ error: "Utilisateur déjà membre de cette famille" });
       }
 
       // Ajout de l'utilisateur a la famille
@@ -172,15 +212,17 @@ module.exports = {
       await famille.save();
 
       console.log("User successfully added to family");
-      console.log(`📊 RGPD Log - User ${user.nom} ${user.prenom} added to family ${famille.nom}, IP: ${req.ip}`);
+      console.log(
+        `📊 RGPD Log - User ${user.nom} ${user.prenom} added to family ${famille.nom}, IP: ${req.ip}`
+      );
 
-      res.status(200).json({ 
+      res.status(200).json({
         success: true,
         message: "Utilisateur ajouté à la famille avec succès",
         famille: {
           nom: famille.nom,
-          description: famille.description
-        }
+          description: famille.description,
+        },
       });
     } catch (error) {
       console.error("Error in addToFamily:", error.message);
@@ -196,7 +238,9 @@ module.exports = {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ error: "Token d'authentification manquant" });
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification manquant" });
       }
 
       let decodedToken;
@@ -205,18 +249,24 @@ module.exports = {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ error: "Token d'authentification invalide" });
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification invalide" });
       }
 
       const userId = decodedToken._id;
       console.log("User ID from token:", userId);
 
       // Trouver la famille à laquelle appartient l'utilisateur
-      const famille = await Famille.findOne({ listeFamily: userId }).populate("listeFamily");
+      const famille = await Famille.findOne({ listeFamily: userId }).populate(
+        "listeFamily"
+      );
 
       if (!famille) {
         console.log("No family found for user");
-        return res.status(404).json({ error: "Aucune famille trouvée pour cet utilisateur" });
+        return res
+          .status(404)
+          .json({ error: "Aucune famille trouvée pour cet utilisateur" });
       }
 
       console.log("Found family:", famille.nom);
@@ -224,65 +274,21 @@ module.exports = {
       // Récupérer la liste des membres de la famille (uniquement leurs IDs)
       const membresFamilleIds = famille.listeFamily.map((member) => member._id);
 
-      console.log(`📊 RGPD Log - Family members retrieved for family ${famille.nom}, IP: ${req.ip}`);
+      console.log(
+        `📊 RGPD Log - Family members retrieved for family ${famille.nom}, IP: ${req.ip}`
+      );
 
-      res.status(200).json({ 
+      res.status(200).json({
         success: true,
-        membresFamilleIds 
+        membresFamilleIds,
       });
     } catch (error) {
       console.error("Error in getFamily:", error.message);
-      res.status(500).json({ error: "Erreur lors de la récupération de la famille" });
+      res
+        .status(500)
+        .json({ error: "Erreur lors de la récupération de la famille" });
     }
   },
-
-  // getFamilyIdByCreator: async (req, res) => {
-  //   try {
-  //     console.log("Getting families by creator");
-
-  //     const token = req.cookies.token;
-  //     if (!token) {
-  //       console.log("Missing authentication token");
-  //       return res.status(401).json({ error: "Token d'authentification manquant" });
-  //     }
-
-  //     let decodedToken;
-  //     try {
-  //       console.log("Verifying token...");
-  //       decodedToken = jwtToken.verify(token, "shhhhh");
-  //     } catch (error) {
-  //       console.log("Invalid authentication token:", error.message);
-  //       return res.status(401).json({ error: "Token d'authentification invalide" });
-  //     }
-
-  //     const userId = decodedToken._id;
-  //     console.log("Creator ID from token:", userId);
-
-  //     // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
-  //     const familles = await Famille.find(
-  //       { createurId: userId },
-  //       "_id nom description code_family urgence"
-  //     );
-
-  //     console.log(`Found ${familles.length} families for creator`);
-  //     console.log(`📊 RGPD Log - Creator families retrieved, IP: ${req.ip}`);
-
-  //     res.status(200).json({
-  //       success: true,
-  //       familles: familles.map((famille) => ({
-  //         familyId: famille._id,
-  //         nom: famille.nom,
-  //         description: famille.description,
-  //         code_family: famille.code_family,
-  //         urgence: famille.urgence
-  //       }))
-  //     });
-  //   } catch (error) {
-  //     console.error("Error in getFamilyIdByCreator:", error.message);
-  //     res.status(500).json({ error: "Erreur serveur" });
-  //   }
-  // },
-
 
   getFamilyIdByCreator: async (req, res) => {
     try {
@@ -294,7 +300,7 @@ module.exports = {
       // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
       const familles = await Famille.find(
         { createurId: userId },
-        "_id nom description code_family"
+        "_id nom description code_family urgence"
       );
 
       res.status(200).json(
@@ -303,7 +309,7 @@ module.exports = {
           nom: famille.nom,
           description: famille.description,
           code_family: famille.code_family,
-
+          urgence: famille.urgence,
         }))
       );
     } catch (error) {
@@ -313,242 +319,182 @@ module.exports = {
   },
 
 
-  // generateDeeplink: async (req, res) => {
-  //   try {
-  //     console.log("Generating deeplink");
-
-  //     const { familyId } = req.params;
-  //     console.log("Family ID:", familyId);
-
-  //     // Vérifier si la famille existe et si l'utilisateur est le créateur de la famille
-  //     const famille = await Famille.findById(familyId);
-  //     if (!famille) {
-  //       console.log("Family not found:", familyId);
-  //       return res.status(404).json({ error: "Famille non trouvée" });
-  //     }
-
-  //     const token = req.cookies.token;
-  //     if (!token) {
-  //       console.log("Missing authentication token");
-  //       return res.status(401).json({ error: "Token d'authentification manquant" });
-  //     }
-
-  //     let decodedToken;
-  //     try {
-  //       console.log("Verifying token...");
-  //       decodedToken = jwtToken.verify(token, "shhhhh");
-  //     } catch (error) {
-  //       console.log("Invalid authentication token:", error.message);
-  //       return res.status(401).json({ error: "Token d'authentification invalide" });
-  //     }
-
-  //     const createurId = decodedToken._id;
-
-  //     if (famille.createurId.toString() !== createurId) {
-  //       console.log("Access denied - not the creator");
-  //       return res.status(403).json({ error: "Seul le créateur peut générer un deeplink" });
-  //     }
-
-  //     console.log("Creator verified for family:", famille.nom);
-
-  //     // Vérifier si un deeplink existe déjà pour cette famille
-  //     const existingUrl = await Url.findOne({
-  //       longUrl: `${req.protocol}://${req.get("host")}/api/joinFamilyByDeeplink/${familyId}`,
-  //     });
-
-  //     if (existingUrl) {
-  //       console.log("Existing deeplink found");
-  //       console.log(`📊 RGPD Log - Existing deeplink retrieved for family ${famille.nom}, IP: ${req.ip}`);
-        
-  //       return res.status(200).json({
-  //         success: true,
-  //         deeplink: `${req.protocol}://${req.get("host")}/u/${existingUrl.shortUrl}`,
-  //         message: "Deeplink existant récupéré"
-  //       });
-  //     }
-
-  //     // Générer le deeplink
-  //     const longDeeplink = `${req.protocol}://${req.get("host")}/api/joinFamilyByDeeplink/${familyId}`;
-  //     console.log("Generated long deeplink:", longDeeplink);
-
-  //     // Raccourcir le deeplink
-  //     const shortUrl = await createShortUrl(longDeeplink);
-  //     console.log("Generated short URL:", shortUrl);
-
-  //     console.log("Deeplink generated successfully");
-  //     console.log(`📊 RGPD Log - New deeplink created for family ${famille.nom}, IP: ${req.ip}`);
-
-  //     res.status(200).json({
-  //       success: true,
-  //       deeplink: `${req.protocol}://${req.get("host")}/u/${shortUrl}`,
-  //       message: "Deeplink généré avec succès"
-  //     });
-  //   } catch (error) {
-  //     console.error("Error in generateDeeplink:", error.message);
-  //     res.status(500).json({ error: "Erreur serveur" });
-  //   }
-  // },
-
-generateDeeplink: async (req, res) => {
-  try {
-    console.log("Generating deeplink with /api prefix");
-
-    const { familyId } = req.params;
-    console.log("Family ID:", familyId);
-
-    // Vérifications d'authentification et de propriété (inchangées)
-    const famille = await Famille.findById(familyId);
-    if (!famille) {
-      console.log("Family not found:", familyId);
-      return res.status(404).json({ error: "Famille non trouvée" });
-    }
-
-    const token = req.cookies.token;
-    if (!token) {
-      console.log("Missing authentication token");
-      return res.status(401).json({ error: "Token d'authentification manquant" });
-    }
-
-    let decodedToken;
+  generateDeeplink: async (req, res) => {
     try {
-      console.log("Verifying token...");
-      decodedToken = jwtToken.verify(token, "shhhhh");
-    } catch (error) {
-      console.log("Invalid authentication token:", error.message);
-      return res.status(401).json({ error: "Token d'authentification invalide" });
-    }
+      console.log("Generating deeplink with /api prefix");
 
-    const createurId = decodedToken._id;
+      const { familyId } = req.params;
+      console.log("Family ID:", familyId);
 
-    if (famille.createurId.toString() !== createurId) {
-      console.log("Access denied - not the creator");
-      return res.status(403).json({ error: "Seul le créateur peut générer un deeplink" });
-    }
+      // Vérifications d'authentification et de propriété (inchangées)
+      const famille = await Famille.findById(familyId);
+      if (!famille) {
+        console.log("Family not found:", familyId);
+        return res.status(404).json({ error: "Famille non trouvée" });
+      }
 
-    console.log("Creator verified for family:", famille.nom);
+      const token = req.cookies.token;
+      if (!token) {
+        console.log("Missing authentication token");
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification manquant" });
+      }
 
-    // ✅ MODIFIÉ: Vérifier si un deeplink existe déjà
-    const existingUrl = await Url.findOne({
-      longUrl: `${req.protocol}://${req.get("host")}/api/joinFamilyByDeeplink/${familyId}`,
-    });
+      let decodedToken;
+      try {
+        console.log("Verifying token...");
+        decodedToken = jwtToken.verify(token, "shhhhh");
+      } catch (error) {
+        console.log("Invalid authentication token:", error.message);
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification invalide" });
+      }
 
-    if (existingUrl) {
-      console.log("Existing deeplink found");
-      console.log(`📊 RGPD Log - Existing deeplink retrieved for family ${famille.nom}, IP: ${req.ip}`);
-      
-      // ✅ CHANGEMENT PRINCIPAL: /api/u/ au lieu de /u/
-      return res.status(200).json({
-        success: true,
-        deeplink: `${req.protocol}://${req.get("host")}/api/u/${existingUrl.shortUrl}`,
-        message: "Deeplink existant récupéré"
+      const createurId = decodedToken._id;
+
+      if (famille.createurId.toString() !== createurId) {
+        console.log("Access denied - not the creator");
+        return res
+          .status(403)
+          .json({ error: "Seul le créateur peut générer un deeplink" });
+      }
+
+      console.log("Creator verified for family:", famille.nom);
+
+      // ✅ MODIFIÉ: Vérifier si un deeplink existe déjà
+      const existingUrl = await Url.findOne({
+        longUrl: `${req.protocol}://${req.get(
+          "host"
+        )}/api/joinFamilyByDeeplink/${familyId}`,
       });
+
+      if (existingUrl) {
+        console.log("Existing deeplink found");
+        console.log(
+          `📊 RGPD Log - Existing deeplink retrieved for family ${famille.nom}, IP: ${req.ip}`
+        );
+
+        // ✅ CHANGEMENT PRINCIPAL: /api/u/ au lieu de /u/
+        return res.status(200).json({
+          success: true,
+          deeplink: `${req.protocol}://${req.get("host")}/api/u/${
+            existingUrl.shortUrl
+          }`,
+          message: "Deeplink existant récupéré",
+        });
+      }
+
+      // ✅ GARDER: Le longUrl contient toujours /api pour la logique interne
+      const longDeeplink = `${req.protocol}://${req.get(
+        "host"
+      )}/api/joinFamilyByDeeplink/${familyId}`;
+      console.log("Generated long deeplink:", longDeeplink);
+
+      // Raccourcir le deeplink
+      const shortUrl = await createShortUrl(longDeeplink);
+      console.log("Generated short URL:", shortUrl);
+
+      console.log("Deeplink generated successfully");
+      console.log(
+        `📊 RGPD Log - New deeplink created for family ${famille.nom}, IP: ${req.ip}`
+      );
+
+      // ✅ CHANGEMENT PRINCIPAL: /api/u/ au lieu de /u/
+      res.status(200).json({
+        success: true,
+        deeplink: `${req.protocol}://${req.get("host")}/api/u/${shortUrl}`,
+        message: "Deeplink généré avec succès",
+      });
+    } catch (error) {
+      console.error("Error in generateDeeplink:", error.message);
+      res.status(500).json({ error: "Erreur serveur" });
     }
-
-    // ✅ GARDER: Le longUrl contient toujours /api pour la logique interne
-    const longDeeplink = `${req.protocol}://${req.get("host")}/api/joinFamilyByDeeplink/${familyId}`;
-    console.log("Generated long deeplink:", longDeeplink);
-
-    // Raccourcir le deeplink
-    const shortUrl = await createShortUrl(longDeeplink);
-    console.log("Generated short URL:", shortUrl);
-
-    console.log("Deeplink generated successfully");
-    console.log(`📊 RGPD Log - New deeplink created for family ${famille.nom}, IP: ${req.ip}`);
-
-    // ✅ CHANGEMENT PRINCIPAL: /api/u/ au lieu de /u/
-    res.status(200).json({
-      success: true,
-      deeplink: `${req.protocol}://${req.get("host")}/api/u/${shortUrl}`,
-      message: "Deeplink généré avec succès"
-    });
-  } catch (error) {
-    console.error("Error in generateDeeplink:", error.message);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-},
-
+  },
 
   /**
- * joinFamilyByDeeplink simplifié dans familles.controllers.js
- * Extrait code_family depuis JSON deeplink
- */
+   * joinFamilyByDeeplink simplifié dans familles.controllers.js
+   * Extrait code_family depuis JSON deeplink
+   */
 
-
- joinFamilyByDeeplink: async (req, res) => {
-  try {
-    const { deeplink } = req.body;
-    if (!deeplink || typeof deeplink !== 'string') {
-      return res.status(400).json({ message: "Missing or invalid deeplink" });
-    }
-    console.log('📩 joinFamilyByDeeplink body:', req.body);
-
-    // Authentification
-    const token = req.cookies.token;
-    if (!token) {
-      return res.status(401).json({ message: "Token manquant" });
-    }
-    let decoded;
+  joinFamilyByDeeplink: async (req, res) => {
     try {
-      decoded = jwtToken.verify(token, "shhhhh");
-    } catch {
-      return res.status(401).json({ message: "Token invalide" });
-    }
-    const userId = decoded._id;
-
-    // Extrait le shortUrl
-    const shortUrlPart = deeplink.split('/').pop();
-    console.log(`Extracted shortUrl part: ${shortUrlPart}`);
-
-    // 1️⃣ Essaie la table Url
-    let familyId;
-    const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
-    if (urlDoc) {
-      console.log('✅ Short URL trouvée en base');
-      const longDeeplink = urlDoc.longUrl;
-      const m = longDeeplink.match(/\/joinFamilyByDeeplink\/([^\/]+)$/);
-      familyId = m && m[1];
-    } else {
-      // 2️⃣ Fallback : cherche direct dans Famille via code_family
-      console.log('⚠️ Short URL non trouvée, fallback sur code_family');
-      const familleByCode = await Famille.findOne({ code_family: shortUrlPart });
-      if (familleByCode) {
-        console.log('✅ Famille trouvée par code_family');
-        familyId = familleByCode._id.toString();
+      const { deeplink } = req.body;
+      if (!deeplink || typeof deeplink !== "string") {
+        return res.status(400).json({ message: "Missing or invalid deeplink" });
       }
+      console.log("📩 joinFamilyByDeeplink body:", req.body);
+
+      // Authentification
+      const token = req.cookies.token;
+      if (!token) {
+        return res.status(401).json({ message: "Token manquant" });
+      }
+      let decoded;
+      try {
+        decoded = jwtToken.verify(token, "shhhhh");
+      } catch {
+        return res.status(401).json({ message: "Token invalide" });
+      }
+      const userId = decoded._id;
+
+      // Extrait le shortUrl
+      const shortUrlPart = deeplink.split("/").pop();
+      console.log(`Extracted shortUrl part: ${shortUrlPart}`);
+
+      // 1️⃣ Essaie la table Url
+      let familyId;
+      const urlDoc = await Url.findOne({ shortUrl: shortUrlPart });
+      if (urlDoc) {
+        console.log("✅ Short URL trouvée en base");
+        const longDeeplink = urlDoc.longUrl;
+        const m = longDeeplink.match(/\/joinFamilyByDeeplink\/([^\/]+)$/);
+        familyId = m && m[1];
+      } else {
+        // 2️⃣ Fallback : cherche direct dans Famille via code_family
+        console.log("⚠️ Short URL non trouvée, fallback sur code_family");
+        const familleByCode = await Famille.findOne({
+          code_family: shortUrlPart,
+        });
+        if (familleByCode) {
+          console.log("✅ Famille trouvée par code_family");
+          familyId = familleByCode._id.toString();
+        }
+      }
+
+      if (!familyId) {
+        console.log("❌ Aucun familyId déterminé");
+        return res.status(400).json({ message: "Invalid deeplink format" });
+      }
+
+      // Vérification ObjectId
+      if (!ObjectId.isValid(familyId)) {
+        return res.status(400).json({ message: "Invalid family ID format" });
+      }
+
+      // Récupère la famille
+      const famille = await Famille.findById(familyId);
+      if (!famille) {
+        return res.status(404).json({ message: "Family not found" });
+      }
+
+      // Vérifie si déjà membre
+      if (famille.listeFamily.includes(userId)) {
+        return res.status(400).json({ message: "User already in family" });
+      }
+
+      // Ajoute et sauve
+      famille.listeFamily.push(userId);
+      await famille.save();
+
+      console.log("✅ User added to family");
+      return res.status(200).json({ message: "User added to family" });
+    } catch (error) {
+      console.error("💥 joinFamilyByDeeplink error:", error);
+      return res.status(500).json({ message: "Server error" });
     }
-
-    if (!familyId) {
-      console.log("❌ Aucun familyId déterminé");
-      return res.status(400).json({ message: "Invalid deeplink format" });
-    }
-
-    // Vérification ObjectId
-    if (!ObjectId.isValid(familyId)) {
-      return res.status(400).json({ message: "Invalid family ID format" });
-    }
-
-    // Récupère la famille
-    const famille = await Famille.findById(familyId);
-    if (!famille) {
-      return res.status(404).json({ message: "Family not found" });
-    }
-
-    // Vérifie si déjà membre
-    if (famille.listeFamily.includes(userId)) {
-      return res.status(400).json({ message: "User already in family" });
-    }
-
-    // Ajoute et sauve
-    famille.listeFamily.push(userId);
-    await famille.save();
-
-    console.log("✅ User added to family");
-    return res.status(200).json({ message: "User added to family" });
-  } catch (error) {
-    console.error("💥 joinFamilyByDeeplink error:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-}, 
+  },
 
   /**
    * Modifier une famille existante
@@ -575,8 +521,8 @@ generateDeeplink: async (req, res) => {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ 
-          error: "Token d'authentification manquant" 
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
         });
       }
 
@@ -586,8 +532,8 @@ generateDeeplink: async (req, res) => {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ 
-          error: "Token d'authentification invalide" 
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
         });
       }
 
@@ -597,16 +543,16 @@ generateDeeplink: async (req, res) => {
       const famille = await Famille.findById(familyId);
       if (!famille) {
         console.log("Family not found:", familyId);
-        return res.status(404).json({ 
-          error: "Famille non trouvée" 
+        return res.status(404).json({
+          error: "Famille non trouvée",
         });
       }
 
       // Contrôle d'accès  - seul le créateur peut modifier
       if (famille.createurId.toString() !== createurId) {
         console.log("Access denied - not the creator");
-        return res.status(403).json({ 
-          error: "Seul le créateur peut modifier cette famille" 
+        return res.status(403).json({
+          error: "Seul le créateur peut modifier cette famille",
         });
       }
 
@@ -616,9 +562,9 @@ generateDeeplink: async (req, res) => {
       if (urgence === true) {
         console.log("Setting urgence to true - deactivating others");
         await Famille.updateMany(
-          { 
+          {
             createurId: createurId,
-            _id: { $ne: familyId } // Exclure la famille actuelle
+            _id: { $ne: familyId }, // Exclure la famille actuelle
           },
           { $set: { urgence: false } }
         );
@@ -641,18 +587,42 @@ generateDeeplink: async (req, res) => {
       );
 
       console.log("Family updated successfully");
-      console.log(`📊 RGPD Log - Family ${familleModifiee.nom} updated, IP: ${req.ip}`);
+      console.log(
+        `📊 RGPD Log - Family ${familleModifiee.nom} updated, IP: ${req.ip}`
+      );
+
+      // Gérer la liste de notifications si le statut d'urgence a changé
+      if (urgence !== undefined) {
+        console.log("Urgency status changed, handling notification list");
+        const notificationResult =
+          await NotificationInitializationService.handleFamilyUrgencyChange(
+            createurId,
+            urgence === true
+          );
+
+        if (notificationResult.success) {
+          console.log(
+            "Notification list handling successful:",
+            notificationResult.action
+          );
+        } else {
+          console.warn(
+            "Notification list handling failed:",
+            notificationResult.error
+          );
+          // Ne pas faire échouer la mise à jour de famille
+        }
+      }
 
       res.status(200).json({
         success: true,
         message: "Famille modifiée avec succès",
-        famille: familleModifiee
+        famille: familleModifiee,
       });
-
     } catch (error) {
       console.error("Error in updateFamily controller:", error.message);
       res.status(500).json({
-        error: "Erreur lors de la modification de la famille"
+        error: "Erreur lors de la modification de la famille",
       });
     }
   },
@@ -672,8 +642,8 @@ generateDeeplink: async (req, res) => {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ 
-          error: "Token d'authentification manquant" 
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
         });
       }
 
@@ -683,8 +653,8 @@ generateDeeplink: async (req, res) => {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ 
-          error: "Token d'authentification invalide" 
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
         });
       }
 
@@ -694,16 +664,16 @@ generateDeeplink: async (req, res) => {
       const famille = await Famille.findById(familyId);
       if (!famille) {
         console.log("Family not found:", familyId);
-        return res.status(404).json({ 
-          error: "Famille non trouvée" 
+        return res.status(404).json({
+          error: "Famille non trouvée",
         });
       }
 
       // Contrôle d'accès - seul le créateur peut supprimer
       if (famille.createurId.toString() !== createurId) {
         console.log("Access denied - not the creator");
-        return res.status(403).json({ 
-          error: "Seul le créateur peut supprimer cette famille" 
+        return res.status(403).json({
+          error: "Seul le créateur peut supprimer cette famille",
         });
       }
 
@@ -712,16 +682,38 @@ generateDeeplink: async (req, res) => {
       // Vérification s'il y a d'autres membres dans la famille
       if (famille.listeFamily.length > 1) {
         console.log("Family has other members, cannot delete");
-        return res.status(400).json({ 
-          error: "Impossible de supprimer une famille contenant d'autres membres. Retirez d'abord tous les membres." 
+        return res.status(400).json({
+          error:
+            "Impossible de supprimer une famille contenant d'autres membres. Retirez d'abord tous les membres.",
         });
+      }
+
+      // Gérer les notifications lors de la suppression
+      if (famille.urgence) {
+        console.log("Deleting urgent family, handling notifications");
+        const notificationResult =
+          await NotificationInitializationService.handleFamilyUrgencyChange(
+            createurId,
+            false // Plus de famille d'urgence
+          );
+
+        if (notificationResult.success) {
+          console.log(
+            "Notification list deactivated for deleted urgent family"
+          );
+        } else {
+          console.warn(
+            "Failed to deactivate notifications for deleted family:",
+            notificationResult.error
+          );
+        }
       }
 
       // Suppression des URL courtes associées à cette famille
       console.log("Cleaning up related URLs");
       const familyDeeplinkPattern = `/joinFamilyByDeeplink/${familyId}`;
-      const deletedUrls = await Url.deleteMany({ 
-        longUrl: { $regex: familyDeeplinkPattern } 
+      const deletedUrls = await Url.deleteMany({
+        longUrl: { $regex: familyDeeplinkPattern },
       });
       console.log(`Deleted ${deletedUrls.deletedCount} related URLs`);
 
@@ -734,13 +726,12 @@ generateDeeplink: async (req, res) => {
 
       res.status(200).json({
         success: true,
-        message: "Famille supprimée avec succès"
+        message: "Famille supprimée avec succès",
       });
-
     } catch (error) {
       console.error("Error in deleteFamily controller:", error.message);
       res.status(500).json({
-        error: "Erreur lors de la suppression de la famille"
+        error: "Erreur lors de la suppression de la famille",
       });
     }
   },
@@ -756,8 +747,8 @@ generateDeeplink: async (req, res) => {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ 
-          error: "Token d'authentification manquant" 
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
         });
       }
 
@@ -767,8 +758,8 @@ generateDeeplink: async (req, res) => {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ 
-          error: "Token d'authentification invalide" 
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
         });
       }
 
@@ -776,15 +767,15 @@ generateDeeplink: async (req, res) => {
       console.log("User ID from token:", userId);
 
       // Recherche de la famille d'urgence active
-      const familleUrgence = await Famille.findOne({ 
+      const familleUrgence = await Famille.findOne({
         createurId: userId,
-        urgence: true 
-      }).populate('listeFamily', 'nom prenom email');
+        urgence: true,
+      }).populate("listeFamily", "nom prenom email");
 
       if (!familleUrgence) {
         console.log("No emergency family found");
-        return res.status(404).json({ 
-          message: "Aucune famille d'urgence configurée" 
+        return res.status(404).json({
+          message: "Aucune famille d'urgence configurée",
         });
       }
 
@@ -794,13 +785,12 @@ generateDeeplink: async (req, res) => {
       res.status(200).json({
         success: true,
         message: "Famille d'urgence récupérée avec succès",
-        famille: familleUrgence
+        famille: familleUrgence,
       });
-
     } catch (error) {
       console.error("Error in getFamilleUrgence controller:", error.message);
       res.status(500).json({
-        error: "Erreur lors de la récupération de la famille d'urgence"
+        error: "Erreur lors de la récupération de la famille d'urgence",
       });
     }
   },
@@ -819,8 +809,8 @@ generateDeeplink: async (req, res) => {
       const token = req.cookies.token;
       if (!token) {
         console.log("Missing authentication token");
-        return res.status(401).json({ 
-          error: "Token d'authentification manquant" 
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
         });
       }
 
@@ -830,8 +820,8 @@ generateDeeplink: async (req, res) => {
         decodedToken = jwtToken.verify(token, "shhhhh");
       } catch (error) {
         console.log("Invalid authentication token:", error.message);
-        return res.status(401).json({ 
-          error: "Token d'authentification invalide" 
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
         });
       }
 
@@ -841,16 +831,17 @@ generateDeeplink: async (req, res) => {
       const famille = await Famille.findById(familyId);
       if (!famille) {
         console.log("Family not found:", familyId);
-        return res.status(404).json({ 
-          error: "Famille non trouvée" 
+        return res.status(404).json({
+          error: "Famille non trouvée",
         });
       }
 
       // Contrôle d'accès
       if (famille.createurId.toString() !== createurId) {
         console.log("Access denied - not the creator");
-        return res.status(403).json({ 
-          error: "Seul le créateur peut définir cette famille comme famille d'urgence" 
+        return res.status(403).json({
+          error:
+            "Seul le créateur peut définir cette famille comme famille d'urgence",
         });
       }
 
@@ -859,9 +850,9 @@ generateDeeplink: async (req, res) => {
       // Désactiver l'urgence sur toutes les autres familles du créateur
       console.log("Deactivating urgence on other families");
       await Famille.updateMany(
-        { 
+        {
           createurId: createurId,
-          _id: { $ne: familyId }
+          _id: { $ne: familyId },
         },
         { $set: { urgence: false } }
       );
@@ -872,100 +863,138 @@ generateDeeplink: async (req, res) => {
       await famille.save();
 
       console.log("Emergency family set successfully");
-      console.log(`📊 RGPD Log - Emergency family set to ${famille.nom}, IP: ${req.ip}`);
+      console.log(
+        `📊 RGPD Log - Emergency family set to ${famille.nom}, IP: ${req.ip}`
+      );
+
+      // Gérer automatiquement la liste de notifications
+      console.log("Handling notification list for new urgent family");
+      const notificationResult =
+        await NotificationInitializationService.handleFamilyUrgencyChange(
+          createurId,
+          true // Cette famille devient d'urgence
+        );
+
+      if (notificationResult.success) {
+        console.log(
+          "Notification list handling successful:",
+          notificationResult.action
+        );
+        if (notificationResult.notificationListId) {
+          console.log(
+            "Notification list ID:",
+            notificationResult.notificationListId
+          );
+        }
+      } else {
+        console.warn(
+          "Notification list handling failed:",
+          notificationResult.error
+        );
+        // Ne pas faire échouer l'activation de famille d'urgence
+      }
 
       res.status(200).json({
         success: true,
         message: "Famille d'urgence définie avec succès",
-        famille: famille
+        famille: famille,
       });
-
     } catch (error) {
       console.error("Error in setFamilleUrgence controller:", error.message);
       res.status(500).json({
-        error: "Erreur lors de la définition de la famille d'urgence"
+        error: "Erreur lors de la définition de la famille d'urgence",
       });
     }
   },
 
-
-/**
- * Récupère les IDs des personnes âgées (créateurs) des familles d'urgence dont l'utilisateur fait partie
- */
-getElderlyFromUrgentFamilies: async (req, res) => {
-  try {
-    console.log("Starting getElderlyFromUrgentFamilies process");
-
-    // Récupération et vérification du token
-    const token = req.cookies.token;
-    if (!token) {
-      console.log("Missing authentication token");
-      return res.status(401).json({ 
-        error: "Token d'authentification manquant" 
-      });
-    }
-
-    let decodedToken;
+  /**
+   * Récupère les IDs des personnes âgées (créateurs) des familles d'urgence dont l'utilisateur fait partie
+   */
+  getElderlyFromUrgentFamilies: async (req, res) => {
     try {
-      console.log("Verifying token...");
-      decodedToken = jwtToken.verify(token, "shhhhh");
+      console.log("Starting getElderlyFromUrgentFamilies process");
+
+      // Récupération et vérification du token
+      const token = req.cookies.token;
+      if (!token) {
+        console.log("Missing authentication token");
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
+        });
+      }
+
+      let decodedToken;
+      try {
+        console.log("Verifying token...");
+        decodedToken = jwtToken.verify(token, "shhhhh");
+      } catch (error) {
+        console.log("Invalid authentication token:", error.message);
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
+        });
+      }
+
+      const userId = decodedToken._id;
+      console.log("User ID from token:", userId);
+
+      // Rechercher toutes les familles d'urgence dont l'utilisateur fait partie
+      // MAIS où il n'est pas le créateur (car les créateurs sont les personnes âgées)
+      const famillesUrgence = await Famille.find({
+        listeFamily: userId,
+        urgence: true,
+        createurId: { $ne: userId }, // Exclure les familles créées par l'utilisateur
+      }).populate("createurId", "nom prenom email");
+
+      console.log(
+        `Found ${famillesUrgence.length} urgent families where user is member`
+      );
+
+      // Extraire les informations des personnes âgées (créateurs)
+      const personnesAgees = famillesUrgence.map((famille) => {
+        console.log(
+          `Processing family: ${famille.nom} with elderly: ${famille.createurId.nom} ${famille.createurId.prenom}`
+        );
+        return {
+          personneAgeeId: famille.createurId._id,
+          nom: famille.createurId.nom,
+          prenom: famille.createurId.prenom,
+          email: famille.createurId.email,
+          familleNom: famille.nom,
+          familleId: famille._id,
+        };
+      });
+
+      // Éliminer les doublons au cas où une personne âgée aurait créé plusieurs familles d'urgence
+      const personnesAgeesUniques = personnesAgees.reduce((acc, current) => {
+        const exists = acc.find(
+          (item) =>
+            item.personneAgeeId.toString() === current.personneAgeeId.toString()
+        );
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      console.log(
+        `Returning ${personnesAgeesUniques.length} unique elderly people from urgent families`
+      );
+      console.log(
+        `📊 RGPD Log - Elderly from urgent families retrieved for user, IP: ${req.ip}`
+      );
+
+      res.status(200).json({
+        success: true,
+        message:
+          "Personnes âgées des familles d'urgence récupérées avec succès",
+        personnesAgees: personnesAgeesUniques,
+        count: personnesAgeesUniques.length,
+      });
     } catch (error) {
-      console.log("Invalid authentication token:", error.message);
-      return res.status(401).json({ 
-        error: "Token d'authentification invalide" 
+      console.error("Error in getElderlyFromUrgentFamilies:", error.message);
+      res.status(500).json({
+        error: "Erreur lors de la récupération des personnes âgées",
       });
     }
-
-    const userId = decodedToken._id;
-    console.log("User ID from token:", userId);
-
-    // Rechercher toutes les familles d'urgence dont l'utilisateur fait partie
-    // MAIS où il n'est pas le créateur (car les créateurs sont les personnes âgées)
-    const famillesUrgence = await Famille.find({
-      listeFamily: userId,
-      urgence: true,
-      createurId: { $ne: userId } // Exclure les familles créées par l'utilisateur
-    }).populate('createurId', 'nom prenom email');
-
-    console.log(`Found ${famillesUrgence.length} urgent families where user is member`);
-
-    // Extraire les informations des personnes âgées (créateurs)
-    const personnesAgees = famillesUrgence.map(famille => {
-      console.log(`Processing family: ${famille.nom} with elderly: ${famille.createurId.nom} ${famille.createurId.prenom}`);
-      return {
-        personneAgeeId: famille.createurId._id,
-        nom: famille.createurId.nom,
-        prenom: famille.createurId.prenom,
-        email: famille.createurId.email,
-        familleNom: famille.nom,
-        familleId: famille._id
-      };
-    });
-
-    // Éliminer les doublons au cas où une personne âgée aurait créé plusieurs familles d'urgence
-    const personnesAgeesUniques = personnesAgees.reduce((acc, current) => {
-      const exists = acc.find(item => item.personneAgeeId.toString() === current.personneAgeeId.toString());
-      if (!exists) {
-        acc.push(current);
-      }
-      return acc;
-    }, []);
-
-    console.log(`Returning ${personnesAgeesUniques.length} unique elderly people from urgent families`);
-    console.log(`📊 RGPD Log - Elderly from urgent families retrieved for user, IP: ${req.ip}`);
-
-    res.status(200).json({
-      success: true,
-      message: "Personnes âgées des familles d'urgence récupérées avec succès",
-      personnesAgees: personnesAgeesUniques,
-      count: personnesAgeesUniques.length
-    });
-
-  } catch (error) {
-    console.error("Error in getElderlyFromUrgentFamilies:", error.message);
-    res.status(500).json({
-      error: "Erreur lors de la récupération des personnes âgées"
-    });
-  }
-},
+  },
 };

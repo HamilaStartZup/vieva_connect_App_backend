@@ -14,6 +14,8 @@ const {
   getElderlyFromUrgentFamilies,
 } = require("../Controllers/familles.controllers");
 const { check } = require("express-validator");
+const NotificationInitializationService = require("../utils/notificationInitializationService");
+const jwtToken = require("jsonwebtoken");
 
 /**
  * Routes pour la gestion des familles
@@ -111,5 +113,54 @@ router.get(
   "/getElderly",
   getElderlyFromUrgentFamilies
 );
+
+
+// ✅ NOUVELLE ROUTE: Vérifier le statut de la liste de notifications
+router.get("/notificationStatus", async (req, res) => {
+  try {
+    console.log("Getting notification list status for user");
+
+    // Récupération du token
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("Missing authentication token");
+      return res.status(401).json({ 
+        error: "Token d'authentification manquant" 
+      });
+    }
+
+    let decodedToken;
+    try {
+      console.log("Verifying token...");
+      decodedToken = jwtToken.verify(token, "shhhhh");
+    } catch (error) {
+      console.log("Invalid authentication token:", error.message);
+      return res.status(401).json({ 
+        error: "Token d'authentification invalide" 
+      });
+    }
+
+    const userId = decodedToken._id;
+    console.log("Getting notification status for user ID:", userId);
+
+    // Obtenir le statut de la liste de notifications
+    const status = await NotificationInitializationService.getNotificationListStatus(userId);
+    
+    console.log("Notification list status retrieved:", status);
+    console.log(`📊 RGPD Log - Notification status checked for user, IP: ${req.ip}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Statut de la liste de notifications récupéré",
+      status: status
+    });
+
+  } catch (error) {
+    console.error("Error getting notification status:", error.message);
+    res.status(500).json({
+      error: "Erreur lors de la récupération du statut des notifications"
+    });
+  }
+});
 
 module.exports = router;
