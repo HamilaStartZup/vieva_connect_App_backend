@@ -308,31 +308,84 @@ module.exports = {
 
   getFamilyIdByCreator: async (req, res) => {
     try {
+      console.log("Getting families created by user");
+      // Récupérer l'ID de l'utilisateur à partir du token
       const token = req.cookies.token;
-      const decodedToken = jwtToken.verify(token, "shhhhh");
+      if (!token) {
+        console.log("Missing authentication token");
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification manquant" });
+      }
+
+      let decodedToken;
+      try {
+        console.log("Verifying token...");
+        decodedToken = jwtToken.verify(token, "shhhhh");
+      } catch (error) {
+        console.log("Invalid authentication token:", error.message);
+        return res
+          .status(401)
+          .json({ error: "Token d'authentification invalide" });
+      }
 
       const userId = decodedToken._id;
+      console.log("User ID from token:", userId);
 
-      // Rechercher les IDs, noms et descriptions des familles créées par l'utilisateur
-      const familles = await Famille.find(
-        { createurId: userId },
-        "_id nom description code_family urgence"
+      // Rechercher les familles créées par l'utilisateur et populate les membres
+      const familles = await Famille.find({ createurId: userId }).populate(
+        "listeFamily",
+        "nom prenom"
       );
 
-      res.status(200).json(
-        familles.map((famille) => ({
+      if (!familles || familles.length === 0) {
+        console.log("No families found for creator");
+        return res
+          .status(404)
+          .json({ error: "Aucune famille trouvée pour ce créateur" });
+      }
+
+      // Structurer les données des familles avec leurs membres
+      const famillesWithMembers = familles.map((famille) => {
+        console.log("Processing family:", famille.nom);
+
+        const membresFamille = famille.listeFamily.map((member) => {
+          console.log("Processing member:", member.nom, member.prenom);
+          return {
+            id: member._id,
+            nom: member.nom,
+            prenom: member.prenom,
+          };
+        });
+
+        return {
           familyId: famille._id,
           nom: famille.nom,
           description: famille.description,
           code_family: famille.code_family,
           urgence: famille.urgence,
-        }))
+          membresFamille,
+        };
+      });
+
+      console.log("Families data processed:", famillesWithMembers.length, "families");
+      console.log(
+        `📊 RGPD Log - Families retrieved for creator ID ${userId}, IP: ${req.ip}`
       );
+
+      res.status(200).json({
+        success: true,
+        familles: famillesWithMembers,
+      });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server error" });
+      console.error("Error in getFamilyByCreator:", error.message);
+      res
+        .status(500)
+        .json({ error: "Erreur lors de la récupération des familles" });
     }
   },
+
+
 
   generateDeeplink: async (req, res) => {
     try {
