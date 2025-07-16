@@ -258,8 +258,10 @@ module.exports = {
       console.log("User ID from token:", userId);
 
       // Trouver la famille à laquelle appartient l'utilisateur
+      // Populate avec les champs spécifiques nom, prenom et email
       const famille = await Famille.findOne({ listeFamily: userId }).populate(
-        "listeFamily"
+        "listeFamily",
+        "nom prenom"
       );
 
       if (!famille) {
@@ -270,17 +272,31 @@ module.exports = {
       }
 
       console.log("Found family:", famille.nom);
+      console.log("Family members count:", famille.listeFamily.length);
 
-      // Récupérer la liste des membres de la famille (uniquement leurs IDs)
-      const membresFamilleIds = famille.listeFamily.map((member) => member._id);
+      // Récupérer la liste des membres de la famille avec leurs informations
+      const membresFamille = famille.listeFamily.map((member) => {
+        console.log("Processing member:", member.nom, member.prenom);
+        return {
+          id: member._id,
+          nom: member.nom,
+          prenom: member.prenom,
+        };
+      });
 
+      console.log("Members data processed:", membresFamille.length, "members");
       console.log(
         `📊 RGPD Log - Family members retrieved for family ${famille.nom}, IP: ${req.ip}`
       );
 
       res.status(200).json({
         success: true,
-        membresFamilleIds,
+        membresFamille,
+        familleInfo: {
+          nom: famille.nom,
+          description: famille.description,
+          code_family: famille.code_family,
+        },
       });
     } catch (error) {
       console.error("Error in getFamily:", error.message);
@@ -317,7 +333,6 @@ module.exports = {
       res.status(500).json({ message: "Server error" });
     }
   },
-
 
   generateDeeplink: async (req, res) => {
     try {
