@@ -14,54 +14,82 @@ class NotificationInitializationService {
    * @returns {Promise<Object|null>} Liste créée ou null si erreur
    */
   static async initializeNotificationList(personneAgeeId, options = {}) {
-    try {
-      console.log("NotificationService: Initializing notification list for user:", personneAgeeId);
-      
-      const {
-        coordinates = [0, 0], // Coordonnées par défaut
-        rayonNotification = 30, // 30km par défaut
-        forceCreate = false // Force la création même si une liste existe
-      } = options;
+  try {
+    console.log("🔧 NotificationService: Initializing notification list for user:", personneAgeeId);
+    console.log("🔧 Options received:", options);
+    
+    const {
+      coordinates,
+      rayonNotification = 30,
+      forceCreate = false
+    } = options;
 
-      // Vérifier s'il existe déjà une liste active
-      const existingList = await NotificationList.findOne({
-        personneAgeeId,
-        active: true
-      });
-
-      if (existingList && !forceCreate) {
-        console.log("NotificationService: Active notification list already exists, skipping creation");
-        return existingList;
-      }
-
-      if (existingList && forceCreate) {
-        console.log("NotificationService: Force creating new list, deactivating existing one");
-        existingList.active = false;
-        await existingList.save();
-      }
-
-      // Créer une nouvelle liste de notifications
-      const nouvelleListeNotification = new NotificationList({
-        personneAgeeId,
-        coordonneesPersonneAgee: {
-          type: "Point",
-          coordinates
-        },
-        rayonNotification,
-        personnesANotifier: [],
-        active: true
-      });
-
-      const listeSauvegardee = await nouvelleListeNotification.save();
-      console.log("NotificationService: Notification list created successfully:", listeSauvegardee._id);
-      
-      return listeSauvegardee;
-
-    } catch (error) {
-      console.error("NotificationService: Error initializing notification list:", error.message);
-      return null;
+    // ✅ VALIDATION OBLIGATOIRE des coordonnées
+    if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
+      console.error("❌ NotificationService: Missing or invalid coordinates:", coordinates);
+      throw new Error('Coordonnées GPS valides requises pour initialiser la liste de notifications');
     }
+
+    const [longitude, latitude] = coordinates;
+    
+    if (isNaN(longitude) || isNaN(latitude)) {
+      console.error("❌ NotificationService: Invalid coordinate values:", coordinates);
+      throw new Error('Coordonnées GPS invalides');
+    }
+
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      console.error("❌ NotificationService: Coordinates out of geographic range:", coordinates);
+      throw new Error('Coordonnées GPS hors de la plage géographique valide');
+    }
+
+    console.log("✅ NotificationService: Valid coordinates confirmed:", coordinates);
+
+    // Vérifier s'il existe déjà une liste active
+    const existingList = await NotificationList.findOne({
+      personneAgeeId,
+      active: true
+    });
+
+    if (existingList && !forceCreate) {
+      console.log("📋 NotificationService: Active notification list already exists, updating coordinates");
+      existingList.coordonneesPersonneAgee.coordinates = coordinates;
+      existingList.derniereMiseAJourPosition = new Date();
+      await existingList.save();
+      console.log("✅ NotificationService: Existing list updated with new coordinates");
+      return existingList;
+    }
+
+    if (existingList && forceCreate) {
+      console.log("🔄 NotificationService: Force creating new list, deactivating existing one");
+      existingList.active = false;
+      await existingList.save();
+    }
+
+    // Créer une nouvelle liste de notifications
+    const nouvelleListeNotification = new NotificationList({
+      personneAgeeId,
+      coordonneesPersonneAgee: {
+        type: "Point",
+        coordinates
+      },
+      rayonNotification,
+      personnesANotifier: [],
+      active: true
+    });
+
+    const listeSauvegardee = await nouvelleListeNotification.save();
+    console.log("✅ NotificationService: New notification list created successfully:");
+    console.log("✅ List ID:", listeSauvegardee._id);
+    console.log("✅ List coordinates:", listeSauvegardee.coordonneesPersonneAgee.coordinates);
+    console.log("✅ List radius:", listeSauvegardee.rayonNotification, "km");
+    
+    return listeSauvegardee;
+
+  } catch (error) {
+    console.error("❌ NotificationService: Error initializing notification list:", error.message);
+    throw error;
   }
+}
 
   /**
    * Désactive toutes les listes de notifications actives pour un utilisateur
@@ -146,50 +174,80 @@ class NotificationInitializationService {
    * @param {Boolean} isUrgentFamily - Si c'est une famille d'urgence
    * @returns {Promise<Object>} Résultat de l'opération
    */
-  static async handleFamilyUrgencyChange(createurId, isUrgentFamily) {
-    const result = {
-      success: false,
-      action: null,
-      notificationListId: null,
-      error: null
-    };
+  static async handleFamilyUrgencyChange(createurId, isUrgentFamily, coordinates = null) {
+  console.log("🔧 NotificationService: Starting handleFamilyUrgencyChange");
+  console.log("🔧 Params:", { createurId, isUrgentFamily, coordinates });
+  
+  const result = {
+    success: false,
+    action: null,
+    notificationListId: null,
+    error: null
+  };
 
-    try {
-      console.log("NotificationService: Handling family urgency change for user:", createurId);
-      console.log("NotificationService: Is urgent family:", isUrgentFamily);
+  try {
+    console.log("NotificationService: Handling family urgency change for user:", createurId);
+    console.log("NotificationService: Is urgent family:", isUrgentFamily);
 
-      if (isUrgentFamily) {
-        // C'est une famille d'urgence, initialiser/réactiver la liste
-        const liste = await this.reactivateOrCreateNotificationList(createurId, {
-          coordinates: [0, 0], // Coordonnées par défaut, seront mises à jour lors de la première alerte
-          rayonNotification: 30
-        });
-
-        if (liste) {
-          result.success = true;
-          result.action = 'created_or_reactivated';
-          result.notificationListId = liste._id;
-          console.log("NotificationService: Notification list successfully handled for urgent family");
-        } else {
-          result.error = "Failed to create/reactivate notification list";
-          console.error("NotificationService: Failed to handle notification list for urgent family");
-        }
-      } else {
-        // Ce n'est plus une famille d'urgence, désactiver les listes
-        const deactivatedCount = await this.deactivateAllNotificationLists(createurId);
-        result.success = true;
-        result.action = 'deactivated';
-        result.deactivatedCount = deactivatedCount;
-        console.log("NotificationService: Notification lists deactivated for non-urgent family");
+    if (isUrgentFamily) {
+      // ✅ OBLIGATOIRE : Coordonnées requises pour créer une liste de notifications
+      if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
+        console.error("❌ NotificationService: Cannot create urgent family notification list without coordinates");
+        result.error = "Coordonnées GPS requises pour créer une liste de notifications d'urgence";
+        return result;
       }
 
-    } catch (error) {
-      console.error("NotificationService: Error handling family urgency change:", error.message);
-      result.error = error.message;
+      const [longitude, latitude] = coordinates;
+      
+      // Validation des coordonnées
+      if (isNaN(longitude) || isNaN(latitude)) {
+        console.error("❌ NotificationService: Invalid coordinate values:", coordinates);
+        result.error = "Coordonnées GPS invalides";
+        return result;
+      }
+
+      if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+        console.error("❌ NotificationService: Coordinates out of geographic range:", coordinates);
+        result.error = "Coordonnées GPS hors de la plage géographique valide";
+        return result;
+      }
+
+      console.log("✅ NotificationService: Creating urgent family notification list with coordinates:", coordinates);
+      
+      // Créer/réactiver la liste avec les coordonnées fournies
+      const liste = await this.reactivateOrCreateNotificationList(createurId, {
+        coordinates: coordinates,
+        rayonNotification: 30
+      });
+
+      if (liste) {
+        result.success = true;
+        result.action = 'created_or_reactivated';
+        result.notificationListId = liste._id;
+        console.log("✅ NotificationService: Notification list created successfully with ID:", liste._id);
+        console.log("✅ NotificationService: List coordinates:", liste.coordonneesPersonneAgee.coordinates);
+      } else {
+        result.error = "Échec de la création de la liste de notifications";
+        console.error("❌ NotificationService: Failed to create notification list");
+      }
+    } else {
+      // Ce n'est plus une famille d'urgence, désactiver les listes
+      console.log("🔄 NotificationService: Deactivating notification lists for non-urgent family");
+      const deactivatedCount = await this.deactivateAllNotificationLists(createurId);
+      result.success = true;
+      result.action = 'deactivated';
+      result.deactivatedCount = deactivatedCount;
+      console.log("✅ NotificationService: Notification lists deactivated:", deactivatedCount);
     }
 
-    return result;
+  } catch (error) {
+    console.error("❌ NotificationService: Error handling family urgency change:", error.message);
+    result.error = error.message;
   }
+
+  console.log("🔧 NotificationService: handleFamilyUrgencyChange result:", result);
+  return result;
+}
 
   /**
    * Obtient le statut de la liste de notifications pour un utilisateur
