@@ -812,15 +812,6 @@ module.exports = {
 
       console.log("Creator verified for family:", famille.nom);
 
-      // Vérification s'il y a d'autres membres dans la famille
-      if (famille.listeFamily.length > 1) {
-        console.log("Family has other members, cannot delete");
-        return res.status(400).json({
-          error:
-            "Impossible de supprimer une famille contenant d'autres membres. Retirez d'abord tous les membres.",
-        });
-      }
-
       // Gérer les notifications lors de la suppression
       if (famille.urgence) {
         console.log("Deleting urgent family, handling notifications");
