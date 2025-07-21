@@ -594,171 +594,195 @@ module.exports = {
    * Contrôle d'accès - seul le créateur peut modifier
    */
   updateFamily: async (req, res) => {
-  try {
-    console.log("🔧 FamilyController: Starting family update process");
-    console.log("🔧 Request body:", req.body);
-
-    // Validation des entrées
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      console.log("❌ FamilyController: Validation errors:", errors.array());
-      return res.status(422).json({
-        error: errors.array()[0].msg,
-      });
-    }
-
-    const { familyId } = req.params;
-    const { nom, description, urgence, coordinates } = req.body;
-    console.log("🔧 FamilyController: Update data:", { familyId, nom, description, urgence, coordinates });
-
-    // ✅ VALIDATION CRITIQUE : Si urgence passe à true, les coordonnées sont OBLIGATOIRES
-    if (urgence === true) {
-      console.log("🔧 FamilyController: Setting family as urgent, validating coordinates");
-      
-      if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
-        console.error("❌ FamilyController: Missing or invalid coordinates for urgent family:", coordinates);
-        return res.status(422).json({
-          error: "Coordonnées GPS requises pour marquer une famille comme urgente. Veuillez activer votre géolocalisation.",
-        });
-      }
-
-      const [longitude, latitude] = coordinates;
-      
-      if (isNaN(longitude) || isNaN(latitude)) {
-        console.error("❌ FamilyController: Invalid coordinate values:", coordinates);
-        return res.status(422).json({
-          error: "Coordonnées GPS invalides. Veuillez réactiver votre géolocalisation.",
-        });
-      }
-
-      if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-        console.error("❌ FamilyController: Coordinates out of geographic range:", coordinates);
-        return res.status(422).json({
-          error: "Coordonnées GPS hors de la plage géographique valide.",
-        });
-      }
-
-      console.log("✅ FamilyController: Valid coordinates confirmed for urgent family:", coordinates);
-    }
-
-    // Récupération du token et vérification du créateur
-    const token = req.cookies.token;
-    if (!token) {
-      console.log("❌ FamilyController: Missing authentication token");
-      return res.status(401).json({
-        error: "Token d'authentification manquant",
-      });
-    }
-
-    let decodedToken;
     try {
-      console.log("🔍 FamilyController: Verifying token...");
-      decodedToken = jwtToken.verify(token, "shhhhh");
-    } catch (error) {
-      console.log("❌ FamilyController: Invalid authentication token:", error.message);
-      return res.status(401).json({
-        error: "Token d'authentification invalide",
-      });
-    }
+      console.log("🔧 FamilyController: Starting family update process");
+      console.log("🔧 Request body:", req.body);
 
-    const createurId = decodedToken._id;
-
-    // Vérification que la famille existe et appartient au créateur
-    const famille = await Famille.findById(familyId);
-    if (!famille) {
-      console.log("❌ FamilyController: Family not found:", familyId);
-      return res.status(404).json({
-        error: "Famille non trouvée",
-      });
-    }
-
-    // Contrôle d'accès
-    if (famille.createurId.toString() !== createurId) {
-      console.log("❌ FamilyController: Access denied - not the creator");
-      return res.status(403).json({
-        error: "Seul le créateur peut modifier cette famille",
-      });
-    }
-
-    console.log("✅ FamilyController: Creator verified for family:", famille.nom);
-
-    // Si urgence est définie sur true, désactiver l'urgence sur les autres familles
-    if (urgence === true) {
-      console.log("🔄 FamilyController: Setting urgence to true, deactivating others");
-      await Famille.updateMany(
-        {
-          createurId: createurId,
-          _id: { $ne: familyId },
-        },
-        { $set: { urgence: false } }
-      );
-      console.log("✅ FamilyController: Other urgent families deactivated");
-    }
-
-    // Préparation des données à mettre à jour
-    const updateData = {};
-    if (nom !== undefined) updateData.nom = nom;
-    if (description !== undefined) updateData.description = description;
-    if (urgence !== undefined) updateData.urgence = urgence;
-
-    console.log("🔧 FamilyController: Updating family with data:", updateData);
-
-    // Mise à jour de la famille
-    const familleModifiee = await Famille.findByIdAndUpdate(
-      familyId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-
-    console.log("✅ FamilyController: Family updated successfully");
-
-    // ✅ CRÉATION IMMÉDIATE de la liste de notifications si passage en urgence
-    if (urgence === true) {
-      console.log("🔧 FamilyController: Creating notification list immediately for newly urgent family");
-      
-      const notificationResult = await NotificationInitializationService.handleFamilyUrgencyChange(
-        createurId,
-        true,
-        coordinates // ✅ UTILISER LES COORDONNÉES VALIDÉES
-      );
-
-      if (notificationResult.success) {
-        console.log("✅ FamilyController: Notification list created successfully:", notificationResult.action);
-      } else {
-        console.error("❌ FamilyController: Failed to create notification list:", notificationResult.error);
-        
-        // Annuler le changement d'urgence si la liste ne peut pas être créée
-        console.log("🔄 FamilyController: Reverting urgence status due to notification list failure");
-        await Famille.findByIdAndUpdate(familyId, { $set: { urgence: false } });
-        
-        return res.status(500).json({
-          error: "Impossible de créer la liste de notifications pour la famille d'urgence",
-          details: notificationResult.error,
+      // Validation des entrées
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        console.log("❌ FamilyController: Validation errors:", errors.array());
+        return res.status(422).json({
+          error: errors.array()[0].msg,
         });
       }
-    } else if (urgence === false) {
-      // Désactiver les listes de notifications
-      console.log("🔧 FamilyController: Disabling urgent family, deactivating notification lists");
-      const notificationResult = await NotificationInitializationService.handleFamilyUrgencyChange(
-        createurId,
-        false,
-        null
-      );
-      console.log("✅ FamilyController: Notification lists deactivated:", notificationResult.action);
-    }
 
-    res.status(200).json({
-      success: true,
-      message: "Famille modifiée avec succès",
-      famille: familleModifiee,
-    });
-  } catch (error) {
-    console.error("❌ FamilyController: Error in updateFamily:", error.message);
-    res.status(500).json({
-      error: "Erreur lors de la modification de la famille",
-    });
-  }
-},
+      const { familyId } = req.params;
+      const { nom, description, urgence, coordinates } = req.body;
+      console.log("🔧 FamilyController: Update data:", { familyId, nom, description, urgence, coordinates });
+
+      // Récupération du token et vérification du créateur
+      const token = req.cookies.token;
+      if (!token) {
+        console.log("❌ FamilyController: Missing authentication token");
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
+        });
+      }
+
+      let decodedToken;
+      try {
+        console.log("🔍 FamilyController: Verifying token...");
+        decodedToken = jwtToken.verify(token, "shhhhh");
+      } catch (error) {
+        console.log("❌ FamilyController: Invalid authentication token:", error.message);
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
+        });
+      }
+
+      const createurId = decodedToken._id;
+
+      // Vérification que la famille existe et appartient au créateur
+      const famille = await Famille.findById(familyId);
+      if (!famille) {
+        console.log("❌ FamilyController: Family not found:", familyId);
+        return res.status(404).json({
+          error: "Famille non trouvée",
+        });
+      }
+
+      // Contrôle d'accès
+      if (famille.createurId.toString() !== createurId) {
+        console.log("❌ FamilyController: Access denied - not the creator");
+        return res.status(403).json({
+          error: "Seul le créateur peut modifier cette famille",
+        });
+      }
+
+      console.log("✅ FamilyController: Creator verified for family:", famille.nom);
+      console.log("🔧 FamilyController: Current family urgence status:", famille.urgence);
+
+      // ✅ VALIDATION CRITIQUE CORRIGÉE : 
+      // Coordonnées OBLIGATOIRES seulement si la famille DEVIENT urgente (passage de false à true)
+      const isBecomingUrgent = urgence === true && famille.urgence === false;
+      const wasAlreadyUrgent = famille.urgence === true;
+      const staysUrgent = urgence === true && wasAlreadyUrgent;
+
+      console.log("🔧 FamilyController: Urgence status analysis:", {
+        currentUrgence: famille.urgence,
+        newUrgence: urgence,
+        isBecomingUrgent,
+        wasAlreadyUrgent,
+        staysUrgent
+      });
+
+      if (isBecomingUrgent) {
+        console.log("🔧 FamilyController: Family is BECOMING urgent, validating coordinates");
+        
+        if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
+          console.error("❌ FamilyController: Missing or invalid coordinates for newly urgent family:", coordinates);
+          return res.status(422).json({
+            error: "Coordonnées GPS requises pour marquer une famille comme urgente. Veuillez activer votre géolocalisation.",
+          });
+        }
+
+        const [longitude, latitude] = coordinates;
+        
+        if (isNaN(longitude) || isNaN(latitude)) {
+          console.error("❌ FamilyController: Invalid coordinate values:", coordinates);
+          return res.status(422).json({
+            error: "Coordonnées GPS invalides. Veuillez réactiver votre géolocalisation.",
+          });
+        }
+
+        if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+          console.error("❌ FamilyController: Coordinates out of geographic range:", coordinates);
+          return res.status(422).json({
+            error: "Coordonnées GPS hors de la plage géographique valide.",
+          });
+        }
+
+        console.log("✅ FamilyController: Valid coordinates confirmed for newly urgent family:", coordinates);
+      } else if (staysUrgent) {
+        console.log("✅ FamilyController: Family was already urgent, no new coordinates needed for this modification");
+      } else if (urgence === true && wasAlreadyUrgent) {
+        console.log("✅ FamilyController: Family remains urgent, no coordinate validation needed");
+      } else if (urgence === false) {
+        console.log("🔧 FamilyController: Family is being set to non-urgent, no coordinates needed");
+      } else {
+        console.log("🔧 FamilyController: No urgence change, no coordinate validation needed");
+      }
+
+      // Si urgence est définie sur true, désactiver l'urgence sur les autres familles
+      if (urgence === true) {
+        console.log("🔄 FamilyController: Setting urgence to true, deactivating others");
+        await Famille.updateMany(
+          {
+            createurId: createurId,
+            _id: { $ne: familyId },
+          },
+          { $set: { urgence: false } }
+        );
+        console.log("✅ FamilyController: Other urgent families deactivated");
+      }
+
+      // Préparation des données à mettre à jour
+      const updateData = {};
+      if (nom !== undefined) updateData.nom = nom;
+      if (description !== undefined) updateData.description = description;
+      if (urgence !== undefined) updateData.urgence = urgence;
+
+      console.log("🔧 FamilyController: Updating family with data:", updateData);
+
+      // Mise à jour de la famille
+      const familleModifiee = await Famille.findByIdAndUpdate(
+        familyId,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+
+      console.log("✅ FamilyController: Family updated successfully");
+
+      // ✅ GESTION DES NOTIFICATIONS - Uniquement si changement d'état d'urgence
+      if (isBecomingUrgent) {
+        console.log("🔧 FamilyController: Creating notification list for newly urgent family");
+        
+        const notificationResult = await NotificationInitializationService.handleFamilyUrgencyChange(
+          createurId,
+          true,
+          coordinates // ✅ UTILISER LES COORDONNÉES VALIDÉES
+        );
+
+        if (notificationResult.success) {
+          console.log("✅ FamilyController: Notification list created successfully:", notificationResult.action);
+        } else {
+          console.error("❌ FamilyController: Failed to create notification list:", notificationResult.error);
+          
+          // Annuler le changement d'urgence si la liste ne peut pas être créée
+          console.log("🔄 FamilyController: Reverting urgence status due to notification list failure");
+          await Famille.findByIdAndUpdate(familyId, { $set: { urgence: false } });
+          
+          return res.status(500).json({
+            error: "Impossible de créer la liste de notifications pour la famille d'urgence",
+            details: notificationResult.error,
+          });
+        }
+      } else if (urgence === false && wasAlreadyUrgent) {
+        // Désactiver les listes de notifications seulement si on désactive une famille qui était urgente
+        console.log("🔧 FamilyController: Disabling previously urgent family, deactivating notification lists");
+        const notificationResult = await NotificationInitializationService.handleFamilyUrgencyChange(
+          createurId,
+          false,
+          null
+        );
+        console.log("✅ FamilyController: Notification lists deactivated:", notificationResult.action);
+      } else {
+        console.log("🔧 FamilyController: No urgence status change, no notification list modification needed");
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Famille modifiée avec succès",
+        famille: familleModifiee,
+      });
+    } catch (error) {
+      console.error("❌ FamilyController: Error in updateFamily:", error.message);
+      res.status(500).json({
+        error: "Erreur lors de la modification de la famille",
+      });
+    }
+  },
 
   /**
    * Supprimer une famille
