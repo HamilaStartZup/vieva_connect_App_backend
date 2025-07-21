@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const {login, create, profile, logout, isAuthenticated, verify_user, verifyToken} = require("../Controllers/auth.controllers.js")
+const {login, create, profile, logout, isAuthenticated, verify_user, verifyToken, updateProfile } = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../openapi.json');
+
 
 // documentation api
 router.use('/api-docs', swaggerUi.serve);
@@ -54,4 +55,50 @@ router.get("/logout", logout);
 router.post('/verify_user', verify_user);
 
 router.post('/verifyToken', verifyToken);
+
+// Route PUT pour modifier le profil utilisateur 
+router.put("/profile/:userId", [
+  // Validations optionnelles - seuls les champs fournis sont validés
+  check("nom")
+    .optional()
+    .isLength({ min: 2, max: 30 })
+    .withMessage("Le nom doit contenir entre 2 et 30 caractères")
+    .trim(),
+  check("prenom")
+    .optional()
+    .isLength({ min: 2, max: 30 })
+    .withMessage("Le prénom doit contenir entre 2 et 30 caractères")
+    .trim(),
+  check("adresse")
+    .optional()
+    .isLength({ min: 10 })
+    .withMessage("L'adresse doit contenir au moins 10 caractères")
+    .trim(),
+  check("telephone")
+    .optional()
+    .isLength({ min: 10 })
+    .withMessage("Le téléphone doit contenir au moins 10 caractères")
+    .trim(),
+  check("email")
+    .optional()
+    .isEmail()
+    .withMessage("Format d'email invalide")
+    .normalizeEmail(),
+  check("mdp")
+    .optional()
+    .isLength({ min: 8 })
+    .withMessage("Le nouveau mot de passe doit contenir au moins 8 caractères"),
+  check("ancienMdp")
+    .optional()
+    .custom((value, { req }) => {
+      // Si mdp est fourni, ancienMdp est obligatoire
+      if (req.body.mdp && (!value || value.trim() === "")) {
+        throw new Error("L'ancien mot de passe est requis pour modifier le mot de passe");
+      }
+      return true;
+    })
+], 
+isAuthenticated, 
+updateProfile);
+
 module.exports = router;
