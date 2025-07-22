@@ -82,8 +82,7 @@ router.put("/profile/:userId", [
   check("email")
     .optional()
     .isEmail()
-    .withMessage("Format d'email invalide")
-    .normalizeEmail(),
+    .withMessage("Format d'email invalide"),
   check("mdp")
     .optional()
     .isLength({ min: 8 })
