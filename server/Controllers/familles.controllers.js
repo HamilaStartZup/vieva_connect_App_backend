@@ -391,8 +391,18 @@ module.exports = {
           urgence: famille.urgence,
           membresFamille,
           idCreateur: famille.createurId
-        }))
+        };
+      });
+
+      console.log("Families data processed:", famillesWithMembers.length, "families");
+      console.log(
+        `📊 RGPD Log - Families retrieved for creator ID ${userId}, IP: ${req.ip}`
       );
+
+      res.status(200).json({
+        success: true,
+        familles: famillesWithMembers,
+      });
     } catch (error) {
       console.error("Error in getFamilyByCreator:", error.message);
       res
@@ -400,6 +410,7 @@ module.exports = {
         .json({ error: "Erreur lors de la récupération des familles" });
     }
   },
+
 
 
 
