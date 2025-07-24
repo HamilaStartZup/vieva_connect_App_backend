@@ -310,6 +310,8 @@ module.exports = {
           description: famille.description,
           code_family: famille.code_family,
           urgence: famille.urgence,
+          membresFamille,
+          idCreateur: famille.createurId
         }))
       );
     } catch (error) {
