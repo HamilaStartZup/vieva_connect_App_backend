@@ -23,6 +23,7 @@
     "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.2.0",
+    "multer": "^2.0.2",
     "swagger-ui-express": "^5.0.0"
   }
 }
