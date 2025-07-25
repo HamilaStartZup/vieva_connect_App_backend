@@ -14,4 +14,34 @@ router.patch("/conversations/:id/read", isAuthenticated, markAsRead);
 // Upload de fichiers (image/audio)
 router.post("/upload", isAuthenticated, uploadFile);
 
+// POST /api/conversations/start
+router.post("/conversations/start", isAuthenticated, async (req, res) => {
+    const userId = req.auth._id;
+    const { participantId } = req.body;
+
+    try {
+        let conversation = await Conversation.findOne({
+            participants: { $all: [userId, participantId], $size: 2 },
+        });
+
+        if (!conversation) {
+            conversation = new Conversation({
+                participants: [userId, participantId],
+                messages: [],
+            });
+            await conversation.save();
+        }
+       console.log("Conversation créée/trouvée :", conversation);
+console.log("Envoyé conversationId :", conversation._id);
+
+        res.json({ conversationId: conversation._id, currentUserId: userId });
+
+
+    } catch (error) {
+        console.error("Erreur création conversation:", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+});
+
+
 module.exports = router;
