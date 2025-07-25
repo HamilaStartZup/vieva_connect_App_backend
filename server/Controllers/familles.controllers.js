@@ -390,6 +390,7 @@ module.exports = {
           code_family: famille.code_family,
           urgence: famille.urgence,
           membresFamille,
+          idCreateur: famille.createurId
         };
       });
 
@@ -409,6 +410,7 @@ module.exports = {
         .json({ error: "Erreur lors de la récupération des familles" });
     }
   },
+
 
 
 
