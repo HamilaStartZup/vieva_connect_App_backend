@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { getConversations, getMessages, sendMessage, markAsRead, uploadFile } = require("../Controllers/messages.controllers.js");
 const { isAuthenticated } = require("../Controllers/auth.controllers.js");
+const Conversation = require("../models/conversations.js");
 
 // Liste des conversations de l'utilisateur connecté
 router.get("/conversations", isAuthenticated, getConversations);
