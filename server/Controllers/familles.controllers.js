@@ -413,6 +413,7 @@ module.exports = {
 
 
 
+
   generateDeeplink: async (req, res) => {
     try {
       console.log("Generating deeplink with /api prefix");
