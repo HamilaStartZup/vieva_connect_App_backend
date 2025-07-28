@@ -12,6 +12,7 @@ const {
   getFamilleUrgence,
   setFamilleUrgence,
   getElderlyFromUrgentFamilies,
+  getAllUserFamilies,
 } = require("../Controllers/familles.controllers");
 const { check } = require("express-validator");
 const NotificationInitializationService = require("../utils/notificationInitializationService");
@@ -162,5 +163,8 @@ router.get("/notificationStatus", async (req, res) => {
     });
   }
 });
+
+// Route pour récupérer toutes les familles dont l'utilisateur fait partie
+router.get("/getAllUserFamilies", getAllUserFamilies);
 
 module.exports = router;

@@ -1173,4 +1173,95 @@ module.exports = {
       });
     }
   },
+
+
+  /**
+ * Récupère toutes les familles dont l'utilisateur fait partie
+ * (qu'il soit créateur ou simple membre)
+ */
+getAllUserFamilies: async (req, res) => {
+  try {
+    console.log("🔍 FamilyController: Getting all families for user");
+
+    // Récupération du token
+    const token = req.cookies.token;
+    if (!token) {
+      console.log("❌ FamilyController: Missing authentication token");
+      return res.status(401).json({
+        error: "Token d'authentification manquant",
+      });
+    }
+
+    let decodedToken;
+    try {
+      console.log("🔍 FamilyController: Verifying token...");
+      decodedToken = jwtToken.verify(token, "shhhhh");
+    } catch (error) {
+      console.log("❌ FamilyController: Invalid authentication token:", error.message);
+      return res.status(401).json({
+        error: "Token d'authentification invalide",
+      });
+    }
+
+    const userId = decodedToken._id;
+    console.log("✅ FamilyController: User ID from token:", userId);
+
+    // Rechercher toutes les familles où l'utilisateur est dans listeFamily
+    const familles = await Famille.find({ 
+      listeFamily: userId 
+    }).populate("listeFamily", "nom prenom email");
+
+    console.log(`✅ FamilyController: Found ${familles.length} families for user`);
+
+    if (!familles || familles.length === 0) {
+      console.log("⚠️ FamilyController: No families found for user");
+      return res.status(200).json({
+        success: true,
+        familles: [],
+        message: "Aucune famille trouvée pour cet utilisateur",
+      });
+    }
+
+    // Structurer les données des familles avec leurs membres
+    const famillesWithMembers = familles.map((famille) => {
+      console.log("🔍 FamilyController: Processing family:", famille.nom);
+
+      const membresFamille = famille.listeFamily.map((member) => {
+        console.log("🔍 FamilyController: Processing member:", member.nom, member.prenom);
+        return {
+          id: member._id,
+          nom: member.nom,
+          prenom: member.prenom,
+          email: member.email,
+        };
+      });
+
+      return {
+        familyId: famille._id,
+        nom: famille.nom,
+        description: famille.description,
+        code_family: famille.code_family,
+        urgence: famille.urgence,
+        membresFamille,
+        idCreateur: famille.createurId,
+        isCreator: famille.createurId.toString() === userId, // Indique si l'utilisateur est le créateur
+      };
+    });
+
+    console.log("✅ FamilyController: Families data processed:", famillesWithMembers.length, "families");
+    console.log(`📊 RGPD Log - All user families retrieved for user ID ${userId}, IP: ${req.ip}`);
+
+    res.status(200).json({
+      success: true,
+      familles: famillesWithMembers,
+      message: "Familles récupérées avec succès",
+    });
+  } catch (error) {
+    console.error("❌ FamilyController: Error in getAllUserFamilies:", error.message);
+    res.status(500).json({
+      error: "Erreur lors de la récupération des familles",
+      details: error.message,
+    });
+  }
+},
 };
