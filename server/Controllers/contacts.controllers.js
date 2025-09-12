@@ -374,5 +374,79 @@ module.exports = {
         error: "Erreur lors de la récupération du contact",
       });
     }
+  },
+
+  /**
+   * Vérifier quels numéros de téléphone correspondent à des utilisateurs de l'app
+   * POST /api/contacts/verifier-utilisateurs
+   */
+  verifierUtilisateursParTelephone: async (req, res) => {
+    try {
+      console.log("Starting phone number verification process");
+
+      // Récupération et vérification du token JWT
+      const token = req.headers["authorization"];
+      if (!token) {
+        console.log("Missing authentication token");
+        return res.status(401).json({
+          error: "Token d'authentification manquant",
+        });
+      }
+
+      let decodedToken;
+      try {
+        console.log("Verifying token...");
+        decodedToken = jwt.verify(token.split(' ')[1], "shhhhh");
+      } catch (error) {
+        console.log("Invalid authentication token:", error.message);
+        return res.status(401).json({
+          error: "Token d'authentification invalide",
+        });
+      }
+
+      // Récupération des numéros de téléphone à vérifier
+      const { numeros } = req.body;
+
+      if (!numeros || !Array.isArray(numeros) || numeros.length === 0) {
+        return res.status(400).json({
+          error: "Liste de numéros de téléphone requise",
+        });
+      }
+
+      console.log("Verifying phone numbers:", numeros);
+
+      // Nettoyer et normaliser les numéros de téléphone
+      const numerosNettoyes = numeros.map(numero => {
+        // Supprimer espaces, tirets, parenthèses et autres caractères
+        return numero.replace(/\s+/g, '').replace(/[-().]/g, '');
+      });
+
+      // Rechercher les utilisateurs correspondant aux numéros
+      const utilisateursCorrespondants = await Personne.find({
+        telephone: { $in: numerosNettoyes }
+      }).select('_id nom prenom telephone');
+
+      console.log(`Found ${utilisateursCorrespondants.length} matching users`);
+
+      // Formater la réponse
+      const resultats = utilisateursCorrespondants.map(user => ({
+        id: user._id,
+        nom: user.nom,
+        prenom: user.prenom,
+        telephone: user.telephone
+      }));
+
+      res.status(200).json({
+        message: "Vérification terminée",
+        nombreCorrespondances: resultats.length,
+        utilisateurs: resultats
+      });
+
+    } catch (error) {
+      console.error("Error in verifierUtilisateursParTelephone controller:", error.message);
+      res.status(500).json({
+        error: "Erreur lors de la vérification des utilisateurs",
+      });
+    }
   }
 };

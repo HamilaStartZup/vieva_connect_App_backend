@@ -6,7 +6,8 @@ const {
   modifierContact, 
   obtenirContacts, 
   supprimerContact,
-  obtenirContact 
+  obtenirContact,
+  verifierUtilisateursParTelephone 
 } = require("../Controllers/contacts.controllers");
 
 /**
@@ -100,5 +101,20 @@ router.delete("/supprimer/:contactId", [
     .isMongoId()
     .withMessage("L'ID du contact doit être un ObjectId MongoDB valide")
 ], supprimerContact);
+
+/**
+ * POST /api/contacts/verifier-utilisateurs
+ * Vérifier quels numéros de téléphone correspondent à des utilisateurs de l'app
+ * Body: { numeros: ["0123456789", "0987654321"] }
+ */
+router.post("/verifier-utilisateurs", [
+  check("numeros", "Liste de numéros de téléphone requise")
+    .isArray({ min: 1 })
+    .withMessage("Au moins un numéro de téléphone est requis"),
+  
+  check("numeros.*", "Format de numéro de téléphone invalide")
+    .matches(/^[\+]?[0-9\s\-\(\)]{8,20}$/)
+    .withMessage("Chaque numéro doit être au format valide")
+], verifierUtilisateursParTelephone);
 
 module.exports = router;
