@@ -126,7 +126,8 @@ module.exports = {
       // Ajouter le message à la conversation
       conversation.messages.push(newMessage._id);
       await conversation.save();
-      res.status(201).json({
+
+      const messageData = {
         id: newMessage._id,
         conversationId: newMessage.conversationId,
         senderId: newMessage.senderId,
@@ -135,7 +136,16 @@ module.exports = {
         type: newMessage.type,
         text: newMessage.text,
         mediaUrl: newMessage.mediaUrl
-      });
+      };
+
+      // Émettre l'événement Socket.io si disponible
+      if (global.io) {
+        const roomName = `conversation_${conversationId}`;
+        global.io.to(roomName).emit('new_message_rest', messageData);
+        console.log(`[REST API] Message émis via Socket.io pour conversation ${conversationId}`);
+      }
+
+      res.status(201).json(messageData);
     } catch (error) {
       res.status(500).json({ error: "Erreur lors de l'envoi du message" });
     }
@@ -157,6 +167,17 @@ module.exports = {
         senderId: { $ne: userId },
         isRead: false
       }, { $set: { isRead: true } });
+
+      // Émettre l'événement Socket.io si disponible
+      if (global.io) {
+        const roomName = `conversation_${conversationId}`;
+        global.io.to(roomName).emit('messages_read_rest', {
+          conversationId,
+          readBy: userId
+        });
+        console.log(`[REST API] Messages marqués comme lus via Socket.io pour conversation ${conversationId}`);
+      }
+
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Erreur lors de la mise à jour des messages" });
