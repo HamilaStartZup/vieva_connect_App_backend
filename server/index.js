@@ -13,6 +13,7 @@ const contactRoutes = require('./Routes/contacts.routes.js');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const fileUpload = require('express-fileupload');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
@@ -30,6 +31,10 @@ app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors());
+app.use(fileUpload({
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limite générale (sera validée par type après)
+  abortOnLimit: true
+}));
 
 // Routes
 app.use('/api', authRoutes);
@@ -47,15 +52,15 @@ app.use('/api/contacts', contactRoutes);
 // Pour basculer, commentez/décommentez UNE SEULE LIGNE ci-dessous :
 
 // --- Pour la PRODUCTION (HTTPS) ---
-const server = https.createServer({
-  key: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/fullchain.pem')
-}, app);
+// const server = https.createServer({
+//   key: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/privkey.pem'),
+//   cert: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/fullchain.pem')
+// }, app);
 
 // --- Pour le DEVELOPPEMENT (HTTP) ---
-// const server = http.createServer(app);
+const server = http.createServer(app);
 
-const PORT = process.env.PORT || (server instanceof https.Server ? 443 : 7000);
+const PORT = process.env.PORT || (server instanceof https.Server ? 443 : 8080);
 
 // =============================================
 // Configuration Socket.io (commune aux deux modes)

@@ -5,3 +5,5 @@
 server/node_modules/
 README.md
 signal-server
+
+server/.well-known

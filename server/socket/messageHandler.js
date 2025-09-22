@@ -90,7 +90,7 @@ const messageHandler = (io) => {
     // Envoyer un message
     socket.on('send_message', async (data) => {
       try {
-        const { conversationId, type, text, mediaUrl } = data;
+        const { conversationId, type, text, mediaUrl, fileName, fileSize, mimeType } = data;
 
         // Vérifier la conversation
         const conversation = await Conversation.findById(conversationId);
@@ -105,6 +105,9 @@ const messageHandler = (io) => {
           type,
           text: type === 'text' ? text : null,
           mediaUrl: type !== 'text' ? mediaUrl : null,
+          fileName: fileName || null,
+          fileSize: fileSize || null,
+          mimeType: mimeType || null,
           isRead: false
         });
 
@@ -123,6 +126,9 @@ const messageHandler = (io) => {
           type: newMessage.type,
           text: newMessage.text,
           mediaUrl: newMessage.mediaUrl,
+          fileName: newMessage.fileName,
+          fileSize: newMessage.fileSize,
+          mimeType: newMessage.mimeType,
           senderName: socket.userName
         };
 

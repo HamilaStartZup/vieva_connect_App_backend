@@ -10,6 +10,11 @@ const connectToDatabase = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("Connexion à la base de données MongoDB établie avec succès");
+
+    // Initialiser GridFS après la connexion
+    const { initGridFS } = require('./utils/gridfs');
+    initGridFS();
+
   } catch (error) {
     console.error(
       "Erreur lors de la connexion à la base de données MongoDB:",

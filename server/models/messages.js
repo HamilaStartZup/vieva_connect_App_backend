@@ -14,7 +14,7 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["text", "image", "audio"],
+      enum: ["text", "image", "audio", "document"],
       required: true,
     },
     text: {
@@ -22,6 +22,18 @@ const messageSchema = new mongoose.Schema(
       default: null,
     },
     mediaUrl: {
+      type: String,
+      default: null,
+    },
+    fileName: {
+      type: String,
+      default: null,
+    },
+    fileSize: {
+      type: Number,
+      default: null,
+    },
+    mimeType: {
       type: String,
       default: null,
     },

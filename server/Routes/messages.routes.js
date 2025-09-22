@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getConversations, getMessages, sendMessage, markAsRead, uploadFile } = require("../Controllers/messages.controllers.js");
+const { getConversations, getMessages, sendMessage, markAsRead, uploadFile, getFile } = require("../Controllers/messages.controllers.js");
 const { isAuthenticated } = require("../Controllers/auth.controllers.js");
 const Conversation = require("../models/conversations.js");
 
@@ -12,8 +12,10 @@ router.get("/conversations/:id/messages", isAuthenticated, getMessages);
 router.post("/messages", isAuthenticated, sendMessage);
 // Marquer tous les messages comme lus
 router.patch("/conversations/:id/read", isAuthenticated, markAsRead);
-// Upload de fichiers (image/audio)
+// Upload de fichiers (image/audio/document)
 router.post("/upload", isAuthenticated, uploadFile);
+// Servir les fichiers depuis GridFS
+router.get("/files/:id", getFile);
 
 // POST /api/conversations/start
 router.post("/conversations/start", isAuthenticated, async (req, res) => {
