@@ -52,13 +52,13 @@ app.use('/api/contacts', contactRoutes);
 // Pour basculer, commentez/décommentez UNE SEULE LIGNE ci-dessous :
 
 // --- Pour la PRODUCTION (HTTPS) ---
-// const server = https.createServer({
-//   key: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/privkey.pem'),
-//   cert: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/fullchain.pem')
-// }, app);
+const server = https.createServer({
+  key: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/vievaconnectbackend.vievaconnect.com/fullchain.pem')
+}, app);
 
 // --- Pour le DEVELOPPEMENT (HTTP) ---
-const server = http.createServer(app);
+// const server = http.createServer(app);
 
 const PORT = process.env.PORT || (server instanceof https.Server ? 443 : 8080);
 
