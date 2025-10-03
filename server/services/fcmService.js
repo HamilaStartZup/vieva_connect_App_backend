@@ -37,65 +37,9 @@ initializeFCM();
  * @param {string} fcmToken - Token FCM de l'utilisateur
  * @param {object} notification - Contenu de la notification
  * @param {object} data - Données supplémentaires
+ * @param {number} badge - Nombre pour le badge iOS (optionnel, défaut: 1)
  */
-// async function sendPushNotification(fcmToken, notification, data = {}) {
-//   if (!fcmInitialized) {
-//     console.warn('[FCM] Service non initialisé - notification ignorée');
-//     return { success: false, error: 'FCM not initialized' };
-//   }
-
-//   if (!fcmToken) {
-//     console.warn('[FCM] Token FCM manquant - notification ignorée');
-//     return { success: false, error: 'No FCM token' };
-//   }
-
-//   try {
-//     const message = {
-//       token: fcmToken,
-//       notification: {
-//         title: notification.title || 'Vieva Connect',
-//         body: notification.body || 'Nouveau message',
-//       },
-//       data: {
-//         ...data,
-//         // Ajouter des données pour la navigation
-//         click_action: 'FLUTTER_NOTIFICATION_CLICK',
-//       },
-//       // Configuration Android
-//       android: {
-//         priority: 'high',
-//         notification: {
-//           sound: 'default',
-//           channelId: 'messages', // Canal pour les messages
-//         }
-//       },
-//       // Configuration iOS
-//       apns: {
-//         payload: {
-//           aps: {
-//             sound: 'default',
-//             badge: 1,
-//           }
-//         }
-//       }
-//     };
-
-//     const response = await admin.messaging().send(message);
-//     console.log('[FCM] Notification envoyée avec succès:', response);
-//     return { success: true, messageId: response };
-//   } catch (error) {
-//     console.error('[FCM] Erreur lors de l\'envoi de la notification:', error);
-
-//     // Si le token est invalide, retourner un indicateur
-//     if (error.code === 'messaging/invalid-registration-token' ||
-//         error.code === 'messaging/registration-token-not-registered') {
-//       return { success: false, error: 'Invalid token', invalidToken: true };
-//     }
-
-//     return { success: false, error: error.message };
-//   }
-// }
-async function sendPushNotification(fcmToken, notification, data = {}, isDataOnly = false) {
+async function sendPushNotification(fcmToken, notification, data = {}, badge = 1) {
   if (!fcmInitialized) {
     console.warn('[FCM] Service non initialisé - notification ignorée');
     return { success: false, error: 'FCM not initialized' };
@@ -108,13 +52,10 @@ async function sendPushNotification(fcmToken, notification, data = {}, isDataOnl
   try {
     const message = {
       token: fcmToken,
-      // Ne pas inclure "notification" si isDataOnly est vrai
-      ...(!isDataOnly && {
-        notification: {
-          title: notification.title || 'Vieva Connect',
-          body: notification.body || 'Nouveau message',
-        }
-      }),
+      notification: {
+        title: notification.title || 'Vieva Connect',
+        body: notification.body || 'Nouveau message',
+      },
       data: {
         ...data,
         title: notification.title || 'Vieva Connect', // Inclure le titre dans data pour le client
@@ -123,24 +64,20 @@ async function sendPushNotification(fcmToken, notification, data = {}, isDataOnl
       },
       android: {
         priority: 'high',
-        ...(!isDataOnly && {
-          notification: {
-            sound: 'default',
-            channelId: 'messages',
-          }
-        })
+        notification: {
+          sound: 'default',
+          channelId: 'messages',
+        }
       },
       apns: {
         payload: {
           aps: {
             sound: 'default',
-            badge: 1,
-            ...(!isDataOnly && {
-              alert: {
-                title: notification.title || 'Vieva Connect',
-                body: notification.body || 'Nouveau message',
-              }
-            })
+            badge: badge,
+            alert: {
+              title: notification.title || 'Vieva Connect',
+              body: notification.body || 'Nouveau message',
+            }
           }
         }
       }
@@ -166,70 +103,7 @@ async function sendPushNotification(fcmToken, notification, data = {}, isDataOnl
  * @param {object} notification - Contenu de la notification
  * @param {object} data - Données supplémentaires
  */
-// async function sendMulticastNotification(fcmTokens, notification, data = {}) {
-//   if (!fcmInitialized) {
-//     console.warn('[FCM] Service non initialisé - notifications ignorées');
-//     return { success: false, error: 'FCM not initialized' };
-//   }
-
-//   if (!fcmTokens || fcmTokens.length === 0) {
-//     console.warn('[FCM] Aucun token FCM - notifications ignorées');
-//     return { success: false, error: 'No FCM tokens' };
-//   }
-
-//   try {
-//     const message = {
-//       tokens: fcmTokens,
-//       notification: {
-//         title: notification.title || 'Vieva Connect',
-//         body: notification.body || 'Nouveau message',
-//       },
-//       data: {
-//         ...data,
-//         click_action: 'FLUTTER_NOTIFICATION_CLICK',
-//       },
-//       android: {
-//         priority: 'high',
-//         notification: {
-//           sound: 'default',
-//           channelId: 'messages',
-//         }
-//       },
-//       apns: {
-//         payload: {
-//           aps: {
-//             sound: 'default',
-//             badge: 1,
-//           }
-//         }
-//       }
-//     };
-
-//     const response = await admin.messaging().sendEachForMulticast(message);
-//     console.log(`[FCM] ${response.successCount}/${fcmTokens.length} notifications envoyées`);
-
-//     // Retourner les tokens invalides pour nettoyage
-//     const invalidTokens = [];
-//     response.responses.forEach((resp, idx) => {
-//       if (!resp.success &&
-//           (resp.error.code === 'messaging/invalid-registration-token' ||
-//            resp.error.code === 'messaging/registration-token-not-registered')) {
-//         invalidTokens.push(fcmTokens[idx]);
-//       }
-//     });
-
-//     return {
-//       success: true,
-//       successCount: response.successCount,
-//       failureCount: response.failureCount,
-//       invalidTokens
-//     };
-//   } catch (error) {
-//     console.error('[FCM] Erreur lors de l\'envoi des notifications multicast:', error);
-//     return { success: false, error: error.message };
-//   }
-// }
-async function sendMulticastNotification(fcmTokens, notification, data = {}, isDataOnly = false) {
+async function sendMulticastNotification(fcmTokens, notification, data = {}) {
   if (!fcmInitialized) {
     console.warn('[FCM] Service non initialisé - notifications ignorées');
     return { success: false, error: 'FCM not initialized' };
@@ -242,12 +116,10 @@ async function sendMulticastNotification(fcmTokens, notification, data = {}, isD
   try {
     const message = {
       tokens: fcmTokens,
-      ...(!isDataOnly && {
-        notification: {
-          title: notification.title || 'Vieva Connect',
-          body: notification.body || 'Nouveau message',
-        }
-      }),
+      notification: {
+        title: notification.title || 'Vieva Connect',
+        body: notification.body || 'Nouveau message',
+      },
       data: {
         ...data,
         title: notification.title || 'Vieva Connect',
@@ -256,24 +128,20 @@ async function sendMulticastNotification(fcmTokens, notification, data = {}, isD
       },
       android: {
         priority: 'high',
-        ...(!isDataOnly && {
-          notification: {
-            sound: 'default',
-            channelId: 'messages',
-          }
-        })
+        notification: {
+          sound: 'default',
+          channelId: 'messages',
+        }
       },
       apns: {
         payload: {
           aps: {
             sound: 'default',
             badge: 1,
-            ...(!isDataOnly && {
-              alert: {
-                title: notification.title || 'Vieva Connect',
-                body: notification.body || 'Nouveau message',
-              }
-            })
+            alert: {
+              title: notification.title || 'Vieva Connect',
+              body: notification.body || 'Nouveau message',
+            }
           }
         }
       }

@@ -8,6 +8,7 @@ const activeUsers = new Map(); // userId -> socketId
 const typingUsers = new Map(); // conversationId -> Set of userIds
 const conversationRooms = new Map(); // conversationId -> Set of socketIds
 const activeConversationScreens = new Map(); // userId -> conversationId (utilisateur actuellement dans cette conversation)
+const appForegroundUsers = new Set(); // Set of userIds dont l'app est en foreground
 
 const messageHandler = (io) => {
   console.log('[MessageHandler] Initialisation du gestionnaire de messagerie Socket.io');
@@ -93,6 +94,18 @@ const messageHandler = (io) => {
         activeConversationScreens.delete(socket.userId);
         console.log(`[MessageHandler] ${socket.userName} a quitté l'écran de conversation ${conversationId}`);
       }
+    });
+
+    // NOUVEAU: App en foreground
+    socket.on('app_foreground', () => {
+      appForegroundUsers.add(socket.userId);
+      console.log(`[MessageHandler] ${socket.userName} - app en FOREGROUND`);
+    });
+
+    // NOUVEAU: App en background
+    socket.on('app_background', () => {
+      appForegroundUsers.delete(socket.userId);
+      console.log(`[MessageHandler] ${socket.userName} - app en BACKGROUND`);
     });
 
     // Envoyer un message
@@ -212,6 +225,8 @@ const messageHandler = (io) => {
       activeUsers.delete(socket.userId);
       // NOUVEAU: Retirer de la map des écrans actifs
       activeConversationScreens.delete(socket.userId);
+      // NOUVEAU: Retirer du set des apps en foreground
+      appForegroundUsers.delete(socket.userId);
       // Retirer de toutes les conversations
       for (const [conversationId, socketIds] of conversationRooms.entries()) {
         socketIds.delete(socket.id);
@@ -267,6 +282,25 @@ const messageHandler = (io) => {
     }
   }
 
+  // NOUVEAU: Fonction helper pour compter les messages non lus d'un utilisateur
+  async function getUnreadMessagesCount(userId) {
+    try {
+      const count = await Message.countDocuments({
+        senderId: { $ne: userId },
+        isRead: false,
+        conversationId: {
+          $in: await Conversation.find({
+            participants: userId
+          }).distinct('_id')
+        }
+      });
+      return count;
+    } catch (error) {
+      console.error('[MessageHandler] Erreur comptage messages non lus:', error);
+      return 0;
+    }
+  }
+
   // NOUVEAU: Fonction pour envoyer push notifications aux participants non actifs
   async function sendPushNotificationsToOfflineParticipants(conversation, senderId, senderName, messageData) {
     try {
@@ -285,10 +319,21 @@ const messageHandler = (io) => {
 
       for (const user of users) {
         const userId = user._id.toString();
+
         // Vérifier si l'utilisateur est dans l'écran de conversation
         const isInConversationScreen = activeConversationScreens.get(userId) === conversation._id.toString();
         if (isInConversationScreen) {
           console.log(`[MessageHandler] ⏭️ Pas de notification pour ${user.prenom} ${user.nom} (dans la conversation)`);
+          continue;
+        }
+
+        // NOUVEAU: Vérifier si l'app est en foreground ET l'utilisateur est actif (Socket.io connecté)
+        // Si oui, le message sera géré par le banner in-app, pas besoin de notification push
+        const isAppInForeground = appForegroundUsers.has(userId);
+        const isSocketConnected = activeUsers.has(userId);
+
+        if (isAppInForeground && isSocketConnected) {
+          console.log(`[MessageHandler] ⏭️ Pas de notification push pour ${user.prenom} ${user.nom} (app en foreground, banner in-app suffit)`);
           continue;
         }
 
@@ -317,9 +362,12 @@ const messageHandler = (io) => {
             notificationBody = '📎 Nouveau message';
         }
 
-        // Envoyer la notification en mode "data-only" si l'utilisateur est actif mais pas dans la conversation
-        const isDataOnly = activeUsers.has(userId) && !isInConversationScreen;
-        console.log(`[MessageHandler] 📤 Envoi notification push à ${user.prenom} ${user.nom} (data-only: ${isDataOnly})`);
+        // Calculer le nombre de messages non lus pour le badge iOS
+        const unreadCount = await getUnreadMessagesCount(userId);
+        const badgeCount = Math.max(1, unreadCount); // Au moins 1 pour le nouveau message
+
+        // Envoyer la notification push (toujours avec notification visible)
+        console.log(`[MessageHandler] 📤 Envoi notification push à ${user.prenom} ${user.nom} (badge: ${badgeCount})`);
         const result = await sendPushNotification(
           user.fcmToken,
           {
@@ -331,9 +379,9 @@ const messageHandler = (io) => {
             messageId: messageData.id.toString(),
             senderId: senderId.toString(),
             senderName: senderName,
-            type: 'new_message'
+            type: messageData.type || 'text'
           },
-          isDataOnly // Passer true pour forcer le mode "data-only"
+          badgeCount // Badge iOS
         );
 
         if (result.success) {
@@ -358,7 +406,8 @@ const messageHandler = (io) => {
     activeUsers,
     typingUsers,
     conversationRooms,
-    activeConversationScreens
+    activeConversationScreens,
+    appForegroundUsers
   };
 };
 
