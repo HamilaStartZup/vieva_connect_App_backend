@@ -349,17 +349,18 @@ module.exports = {
             
             await admin.messaging().send({
               token: user.fcmToken,
-              notification: {
-                title: '🚨 Demande d\'aide urgente !',
-                body: `${personneAgee.prenom} ${personneAgee.nom} a besoin d'aide`
-              },
               data: {
                 type: 'help_request',
                 alerteId: nouvelleAlerte._id.toString(),
                 elderlyName: `${personneAgee.prenom} ${personneAgee.nom}`,
                 elderlyId: personneAgeeId.toString(),
                 coordinates: JSON.stringify(nouvelleAlerte.coordonnees.coordinates),
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                // i18n keys for frontend translation
+                titleKey: 'help_request_title',
+                bodyKey: 'help_request_notification_body',
+                elderlyFirstName: personneAgee.prenom,
+                elderlyLastName: personneAgee.nom
               },
               android: {
                 priority: 'high',
@@ -375,11 +376,7 @@ module.exports = {
                 payload: {
                   aps: {
                     sound: 'default',
-                    badge: 1,
-                    alert: {
-                      title: '🚨 Demande d\'aide urgente !',
-                      body: `${personneAgee.prenom} ${personneAgee.nom} a besoin d'aide`
-                    }
+                    badge: 1
                   }
                 }
               }
@@ -540,16 +537,17 @@ module.exports = {
           
           await admin.messaging().send({
             token: elderlyPerson.fcmToken,
-            notification: {
-              title: '✅ Aide en route !',
-              body: `${helper.prenom} ${helper.nom} arrive pour vous aider`
-            },
             data: {
               type: 'help_confirmed',
               alerteId: alerteId.toString(),
               helperName: `${helper.prenom} ${helper.nom}`,
               helperId: helperId.toString(),
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              // i18n keys for frontend translation
+              titleKey: 'help_confirmed_title',
+              bodyKey: 'help_confirmed_notification_body',
+              helperFirstName: helper.prenom,
+              helperLastName: helper.nom
             },
             android: {
               priority: 'high',
