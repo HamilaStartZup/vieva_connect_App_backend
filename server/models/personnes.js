@@ -46,6 +46,16 @@ const personneSchema = new mongoose.Schema(
         default: null
       },
       version: String
+    },
+    // CHAMPS POUR LA SUPPRESSION DE COMPTE (RGPD)
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

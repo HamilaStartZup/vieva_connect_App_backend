@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const {login, create, profile, logout, isAuthenticated, verify_user, verifyToken, updateProfile } = require("../Controllers/auth.controllers.js")
+const {login, create, profile, logout, isAuthenticated, verify_user, verifyToken, updateProfile, deleteAccount } = require("../Controllers/auth.controllers.js")
 const { check } = require('express-validator');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../openapi.json');
@@ -56,7 +56,7 @@ router.post('/verify_user', verify_user);
 
 router.post('/verifyToken', verifyToken);
 
-// Route PUT pour modifier le profil utilisateur 
+// Route PUT pour modifier le profil utilisateur
 router.put("/profile/:userId", [
   // Validations optionnelles - seuls les champs fournis sont validés
   check("nom")
@@ -96,8 +96,11 @@ router.put("/profile/:userId", [
       }
       return true;
     })
-], 
-isAuthenticated, 
+],
+isAuthenticated,
 updateProfile);
+
+// Route DELETE pour supprimer le compte utilisateur (conforme RGPD)
+router.delete("/delete-account", isAuthenticated, deleteAccount);
 
 module.exports = router;

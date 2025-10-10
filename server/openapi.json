@@ -1,54 +1,111 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.3",
   "info": {
-    "title": "Vieva_Connect",
-    "version": "1.0.0"
+    "title": "Vieva Connect API",
+    "version": "1.0.0",
+    "description": "API REST pour l'application Vieva Connect - Une plateforme de communication familiale et de suivi de proximité avec alertes d'urgence pour personnes âgées.",
+    "contact": {
+      "name": "Vieva Connect Support",
+      "email": "support@vievaconnect.com"
+    }
   },
   "servers": [
     {
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/api",
+      "description": "Serveur de développement (HTTP)"
+    },
+    {
+      "url": "https://vievaconnectbackend.vievaconnect.com/api",
+      "description": "Serveur de production (HTTPS)"
     }
   ],
   "tags": [
     {
-      "name": "Authentification",
-      "description": "Authentification et creation d'utilisateurs"
+      "name": "Authentication",
+      "description": "Endpoints d'authentification et de gestion des utilisateurs"
     },
     {
-      "name": "Profil",
-      "description": "Information de l'utilisateur"
+      "name": "Messages",
+      "description": "Gestion de la messagerie instantanée entre membres de famille"
     },
     {
-      "name": "ConnectyCube",
-      "description": "Endpoint concernant ConnectyCube"
+      "name": "Families",
+      "description": "Gestion des familles, création, ajout de membres et deeplinks"
     },
     {
-      "name": "Famille",
-      "description": "Endpoint concernant la famille"
+      "name": "Users",
+      "description": "Gestion des utilisateurs et rôles"
     },
     {
-      "name": "Utilisateurs",
-      "description": "Endpoints concernant les utilisateurs"
+      "name": "Alerts",
+      "description": "Système d'alertes d'urgence avec géolocalisation"
     },
     {
-      "name": "Alertes",
-      "description": "Endpoint concernant les alertes"
+      "name": "Notifications",
+      "description": "Notifications de proximité et gestion des alertes push"
+    },
+    {
+      "name": "Contacts",
+      "description": "Gestion des contacts d'urgence pour personnes âgées"
+    },
+    {
+      "name": "URLs",
+      "description": "Gestion des liens raccourcis et deeplinks"
     }
   ],
   "paths": {
-    "/api/login": {
+    "/": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Page d'accueil de l'API",
+        "description": "Endpoint de santé pour vérifier que l'API fonctionne",
+        "responses": {
+          "200": {
+            "description": "API opérationnelle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mssg": {
+                      "type": "string",
+                      "example": "Voici la page landing"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
       "post": {
-        "tags": [
-          "Authentification"
-        ],
-        "summary": "Connexion à l'application",
-        "description": "Connexion en utilisant l'email et le mot de passe",
-        "operationId": "loginUser",
+        "tags": ["Authentication"],
+        "summary": "Connexion utilisateur",
+        "description": "Authentifie un utilisateur et retourne un token JWT",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Login"
+                "type": "object",
+                "required": ["email", "mdp"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Adresse email de l'utilisateur",
+                    "example": "jean.dupont@example.com"
+                  },
+                  "mdp": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 1,
+                    "description": "Mot de passe de l'utilisateur",
+                    "example": "motdepasse123"
+                  }
+                }
               }
             }
           }
@@ -56,43 +113,115 @@
         "responses": {
           "200": {
             "description": "Connexion réussie",
-            "headers": {
-              "Set-Cookie": {
-                "description": "Cookie contenant le token",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Token JWT pour les requêtes authentifiées",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "expirationTime": {
+                      "type": "number",
+                      "description": "Timestamp d'expiration du token",
+                      "example": 1735689600000
+                    },
+                    "personne": {
+                      "$ref": "#/components/schemas/UserPublic"
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Utilisateur introuvable"
+            "description": "Utilisateur non trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Mot de passe incorrect"
+            "description": "Mot de passe invalide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Entité non traitable"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/create": {
+    "/create": {
       "post": {
-        "tags": [
-          "Authentification"
-        ],
-        "summary": "Création d'un nouvel utilisateur",
-        "description": "Enregistrement d'un nouvel utilisateur dans la base de données",
-        "operationId": "createUser",
+        "tags": ["Authentication"],
+        "summary": "Créer un nouveau compte utilisateur",
+        "description": "Enregistre un nouvel utilisateur et retourne un token JWT",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Create"
+                "type": "object",
+                "required": ["nom", "prenom", "adresse", "telephone", "email", "mdp"],
+                "properties": {
+                  "nom": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 30,
+                    "description": "Nom de famille",
+                    "example": "Dupont"
+                  },
+                  "prenom": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 30,
+                    "description": "Prénom",
+                    "example": "Jean"
+                  },
+                  "adresse": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Adresse complète",
+                    "example": "123 Rue de la Paix, 75001 Paris"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Numéro de téléphone",
+                    "example": "0612345678"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Adresse email unique",
+                    "example": "jean.dupont@example.com"
+                  },
+                  "mdp": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 8,
+                    "description": "Mot de passe (minimum 8 caractères)",
+                    "example": "MotDePasse123!"
+                  }
+                }
               }
             }
           }
@@ -100,492 +229,99 @@
         "responses": {
           "200": {
             "description": "Utilisateur créé avec succès",
-            "headers": {
-              "Set-Cookie": {
-                "description": "Cookie contenant le token",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Token JWT"
+                    },
+                    "personne": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
                 }
               }
             }
           },
-          "400": {
-            "description": "Utilisateur déjà existant"
+          "409": {
+            "description": "L'utilisateur existe déjà",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Entrée non valide"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/profile/{userId}": {
+    "/profile/{userId}": {
       "get": {
-        "tags": [
-          "Profil"
-        ],
-        "summary": "Récupère un utilisateur par son Id",
-        "description": "Retourne un seul profil",
-        "operationId": "getUserProfile",
+        "tags": ["Authentication"],
+        "summary": "Obtenir le profil d'un utilisateur",
+        "description": "Récupère les informations détaillées d'un utilisateur",
+        "security": [{"BearerAuth": []}],
         "parameters": [
           {
             "name": "userId",
             "in": "path",
-            "description": "Id d'un utilisateur",
             "required": true,
             "schema": {
               "type": "string",
-              "format": "hexadecimal"
-            }
+              "format": "objectid"
+            },
+            "description": "ID de l'utilisateur"
           }
         ],
         "responses": {
           "200": {
-            "description": "Récupération réussie",
+            "description": "Profil récupéré avec succès",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Profil"
+                  "$ref": "#/components/schemas/User"
                 }
               }
             }
           },
           "401": {
-            "description": "Non autorisé"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "description": "Utilisateur non trouvé"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
           }
         }
-      }
-    },
-    "/api/logout": {
-      "get": {
-        "tags": [
-          "Authentification"
-        ],
-        "summary": "Déconnexion de l'application",
-        "description": "Déconnexion",
-        "operationId": "logoutUser",
-        "responses": {
-          "default": {
-            "description": "Déconnexion réussie"
-          }
-        }
-      }
-    },
-    "/api/verify_user": {
-      "post": {
-        "tags": [
-          "ConnectyCube"
-        ],
-        "summary": "Vérification de l'utilisateur pour ConnectyCube",
-        "description": "j",
-        "operationId": "verifyUser",
+      },
+      "put": {
+        "tags": ["Authentication"],
+        "summary": "Modifier le profil utilisateur",
+        "description": "Met à jour les informations du profil de l'utilisateur connecté",
+        "security": [{"BearerAuth": []}],
         "parameters": [
           {
-            "name": "token",
-            "in": "query",
-            "description": "Vérification avec renvoie d'une réponse",
+            "name": "userId",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "ID de l'utilisateur (doit correspondre à l'utilisateur connecté)"
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Vérification réussie",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Verify_user"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Non autorisé"
-          }
-        }
-      }
-    },
-    "/api/createFamily": {
-      "post": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Création d'une famille",
-        "description": "Création d'une famille",
-        "operationId": "createFamily",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateFamily"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Famille créée avec succès"
-          },
-          "422": {
-            "description": "Entrée non valide"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/addToFamily": {
-      "put": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Ajout de l'utilisateur à une famille",
-        "description": "Ajout de l'utilisateur à une famille",
-        "operationId": "addToFamily",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddToFamily"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Ajouté avec succès"
-          },
-          "400": {
-            "description": "Déjà existant"
-          },
-          "404": {
-            "description": "Non trouvé"
-          },
-          "422": {
-            "description": "Entrée non valide"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/getFamily": {
-      "get": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Récupérer la liste des membres d'une famille",
-        "description": "Récupère la liste des membres d'une famille à laquelle appartient l'utilisateur connecté",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "La liste des membres de la famille a été récupérée avec succès",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/getFamily"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Famille non trouvée"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/AllUsers": {
-      "get": {
-        "tags": [
-          "Utilisateurs"
-        ],
-        "summary": "Récupérer tous les utilisateurs",
-        "description": "Récupère les utilisateurs de la base de données",
-        "responses": {
-          "200": {
-            "description": "Liste de tous les utilsateurs",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AllUsers"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/getFamilyIdByCreator": {
-      "get": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Récupération de l'id d'une famille par son créateur",
-        "description": "Récupération de l'id de la famille grâce à l'id du créateur",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "L'id de la famille a été récupéré avec succès",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/getFamilyIdByCreator"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/generateDeeplink/{familyId}": {
-      "get": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Génération d'un deeplink",
-        "description": "Génération d'un deeplink grâce à l'id de la famille",
-        "operationId": "generateDeeplink",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          },
-          {
-            "name": "familyId",
-            "in": "path",
-            "description": "Id d'une famille",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "hexadecimal",
-              "example": "6634ebf9e519ceb178a565dc"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Le deeplink a été créé avec succès",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/generateDeeplink"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Non autorisé"
-          },
-          "404": {
-            "description": "Non trouvé"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/joinFamilyByDeeplink": {
-      "post": {
-        "tags": [
-          "Famille"
-        ],
-        "summary": "Rejoindre une famille via Deeplink",
-        "description": "Ajout de l'utilisateur à la famille grâce au deeplink",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "operationId": "joinFamilyByDeeplink",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/joinFamilyByDeeplink"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Utilisateur ajouté à la famille avec succès"
-          },
-          "400": {
-            "description": "Non valide ou déjà existant"
-          },
-          "404": {
-            "description": "Non trouvé"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/addRole": {
-      "put": {
-        "tags": [
-          "Utilisateurs"
-        ],
-        "summary": "Ajout de role",
-        "description": "Ajout du role de l'utilisateur",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "cookie",
-            "description": "token contenant plusieurs informations sur l'utilisateur",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
-            }
-          }
-        ],
-        "operationId": "addRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/addRole"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Rôle attribué avec succès"
-          },
-          "401": {
-            "description": "Token manquant ou invalide"
-          },
-          "404": {
-            "description": "Utilisateur non trouvé"
-          },
-          "422": {
-            "description": "Entrée non valide"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/AllChildren": {
-      "get": {
-        "tags": [
-          "Utilisateurs"
-        ],
-        "summary": "Récupérer les \"enfants\"",
-        "description": "Récupérer les utilisateurs ayant le role \"enfant\"",
-        "responses": {
-          "200": {
-            "description": "Liste des \"enfants\"",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AllUsers"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Aucun utilisateur trouvé"
-          },
-          "500": {
-            "description": "Erreur interne du serveur"
-          }
-        }
-      }
-    },
-    "/api/verifyToken": {
-      "post": {
-        "tags": [
-          "Authentification"
-        ],
-        "summary": "Vérification du token",
-        "description": "Vérification de la validité du token",
-        "operationId": "verifyToken",
         "requestBody": {
           "required": true,
           "content": {
@@ -593,10 +329,98 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "nom": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "Nouveau nom"
+                  },
+                  "prenom": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "Nouveau prénom"
+                  },
+                  "adresse": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Nouvelle adresse"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "minLength": 10,
+                    "description": "Nouveau numéro de téléphone"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Nouvelle adresse email"
+                  },
+                  "mdp": {
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "Nouveau mot de passe"
+                  },
+                  "ancienMdp": {
+                    "type": "string",
+                    "description": "Ancien mot de passe (requis si mdp est fourni)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profil modifié avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Profil modifié avec succès"
+                    },
+                    "personne": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur de validation ou ancien mot de passe incorrect"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Vous ne pouvez modifier que votre propre profil"
+          },
+          "409": {
+            "description": "Cette adresse email est déjà utilisée"
+          }
+        }
+      }
+    },
+    "/verifyToken": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Vérifier la validité d'un token JWT",
+        "description": "Vérifie si un token JWT est toujours valide",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
                   "token": {
                     "type": "string",
-                    "description": "Token à vérifier",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDVjffFTDYDSFZ71QjNL0oeTul0I"
+                    "description": "Token JWT à vérifier"
                   }
                 }
               }
@@ -621,45 +445,565 @@
             }
           },
           "401": {
-            "description": "Token non valide",
+            "description": "Token invalide"
+          }
+        }
+      }
+    },
+    "/verify_user": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Vérifier l'utilisateur pour ConnectyCube",
+        "description": "Vérifie le token et retourne l'ID utilisateur pour ConnectyCube",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Token JWT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur vérifié",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
+                    "id": {
                       "type": "string",
-                      "example": "Invalid token"
+                      "description": "ID de l'utilisateur"
                     }
                   }
                 }
               }
             }
           },
-          "500": {
-            "description": "Erreur interne du serveur"
+          "401": {
+            "description": "Token invalide"
           }
         }
       }
     },
-    "/api/createAlerte": {
+    "/logout": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Déconnexion utilisateur",
+        "description": "Supprime le cookie d'authentification",
+        "responses": {
+          "200": {
+            "description": "Déconnexion réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Utilisateur s'est déconnecté"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-account": {
+      "delete": {
+        "tags": ["Authentication"],
+        "summary": "Supprimer le compte utilisateur",
+        "description": "Supprime définitivement le compte de l'utilisateur connecté et anonymise toutes ses données personnelles. Cette action est irréversible et supprime/anonymise : les données personnelles, les contacts, les listes de notifications, les alertes (annulées), les familles créées, et retire l'utilisateur des conversations et familles dont il est membre.",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Compte supprimé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Votre compte a été supprimé avec succès. Toutes vos données personnelles ont été anonymisées."
+                    },
+                    "deletionSummary": {
+                      "type": "object",
+                      "properties": {
+                        "contactsDeleted": {
+                          "type": "integer",
+                          "description": "Nombre de contacts supprimés"
+                        },
+                        "notificationListsDeleted": {
+                          "type": "integer",
+                          "description": "Nombre de listes de notifications supprimées"
+                        },
+                        "alertsCancelled": {
+                          "type": "integer",
+                          "description": "Nombre d'alertes annulées"
+                        },
+                        "familiesDeleted": {
+                          "type": "integer",
+                          "description": "Nombre de familles supprimées (créées par l'utilisateur)"
+                        },
+                        "familyMembershipsRemoved": {
+                          "type": "integer",
+                          "description": "Nombre d'appartenances familiales retirées"
+                        },
+                        "conversationsUpdated": {
+                          "type": "integer",
+                          "description": "Nombre de conversations mises à jour"
+                        },
+                        "emptyConversationsDeleted": {
+                          "type": "integer",
+                          "description": "Nombre de conversations vides supprimées"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Le compte a déjà été supprimé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur serveur lors de la suppression",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Liste des conversations de l'utilisateur",
+        "description": "Récupère toutes les conversations de l'utilisateur connecté avec le dernier message et le nombre de messages non lus",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Liste des conversations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Conversation"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/conversations/start": {
       "post": {
-        "tags": [
-          "Alertes"
-        ],
-        "summary": "Création d'une alerte",
-        "description": "Création d'une nouvelle alerte",
-        "operationId": "createAlerte",
+        "tags": ["Messages"],
+        "summary": "Démarrer une nouvelle conversation",
+        "description": "Crée une nouvelle conversation ou récupère une conversation existante entre deux utilisateurs",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["participantId"],
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de l'autre participant",
+                    "example": "65a1b2c3d4e5f6789abcdef0"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation créée ou récupérée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversationId": {
+                      "type": "string",
+                      "description": "ID de la conversation"
+                    },
+                    "currentUserId": {
+                      "type": "string",
+                      "description": "ID de l'utilisateur connecté"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "Erreur serveur"
+          }
+        }
+      }
+    },
+    "/conversations/{id}/messages": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Messages d'une conversation",
+        "description": "Récupère tous les messages d'une conversation spécifique",
+        "security": [{"BearerAuth": []}],
         "parameters": [
           {
-            "name": "authorization",
-            "in": "header",
-            "description": "Token d'authentification JWT",
+            "name": "id",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjRmMzM0ZGYzY2EwN2M3ZTZlNmIwMzEiLCJpYXQiOjE3MTY0Njc3NzF9.stBzzPcZrauf9PHFDvffFTDYDSFZ71QjNL0oeTul0I"
+              "format": "objectid"
+            },
+            "description": "ID de la conversation"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  }
+                }
+              }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Conversation non trouvée"
+          }
+        }
+      }
+    },
+    "/messages": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Envoyer un message",
+        "description": "Envoie un nouveau message texte, image, audio ou document dans une conversation",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["conversationId", "type"],
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de la conversation"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["text", "image", "audio", "document"],
+                    "description": "Type de message"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "Contenu textuel (requis pour type text)"
+                  },
+                  "mediaUrl": {
+                    "type": "string",
+                    "description": "URL du fichier média (pour image, audio, document)"
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "description": "Nom du fichier"
+                  },
+                  "fileSize": {
+                    "type": "number",
+                    "description": "Taille du fichier en octets"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "description": "Type MIME du fichier"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message envoyé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Conversation non trouvée"
+          }
+        }
+      }
+    },
+    "/conversations/{id}/read": {
+      "patch": {
+        "tags": ["Messages"],
+        "summary": "Marquer les messages comme lus",
+        "description": "Marque tous les messages d'une conversation comme lus",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la conversation"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages marqués comme lus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Messages marqués comme lus"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Upload de fichiers",
+        "description": "Upload un fichier (image, audio ou document) pour la messagerie. Limite: 25MB",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Fichier à uploader (max 25MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fichier uploadé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileId": {
+                      "type": "string",
+                      "description": "ID du fichier dans GridFS"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "URL pour accéder au fichier"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "fileSize": {
+                      "type": "number"
+                    },
+                    "mimeType": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Fichier invalide ou trop volumineux"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/files/{id}": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Récupérer un fichier",
+        "description": "Télécharge un fichier depuis GridFS",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID du fichier dans GridFS"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fichier téléchargé",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Fichier non trouvé"
+          }
+        }
+      }
+    },
+    "/createFamily": {
+      "post": {
+        "tags": ["Families"],
+        "summary": "Créer une nouvelle famille",
+        "description": "Crée une nouvelle famille avec un code unique généré automatiquement",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nom"],
+                "properties": {
+                  "nom": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "Nom de la famille",
+                    "example": "Famille Dupont"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Description de la famille",
+                    "example": "Notre famille élargie"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Famille créée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Family"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation"
+          }
+        }
+      }
+    },
+    "/updateFamily/{familyId}": {
+      "put": {
+        "tags": ["Families"],
+        "summary": "Modifier une famille",
+        "description": "Met à jour les informations d'une famille existante",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la famille"
           }
         ],
         "requestBody": {
@@ -669,25 +1013,619 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "nom": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "Nouveau nom"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Nouvelle description"
+                  },
+                  "urgence": {
+                    "type": "boolean",
+                    "description": "Définir comme famille d'urgence"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Famille modifiée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Family"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/deleteFamily/{familyId}": {
+      "delete": {
+        "tags": ["Families"],
+        "summary": "Supprimer une famille",
+        "description": "Supprime définitivement une famille",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la famille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Famille supprimée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Famille supprimée avec succès"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/addToFamily": {
+      "put": {
+        "tags": ["Families"],
+        "summary": "Rejoindre une famille avec un code",
+        "description": "Permet à un utilisateur de rejoindre une famille en utilisant son code unique",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code_family"],
+                "properties": {
+                  "code_family": {
+                    "type": "string",
+                    "pattern": "^VF-[A-Za-z0-9]{4}$",
+                    "description": "Code famille au format VF-XXXX",
+                    "example": "VF-Ab12"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur ajouté à la famille",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Vous avez rejoint la famille avec succès"
+                    },
+                    "famille": {
+                      "$ref": "#/components/schemas/Family"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Code famille invalide"
+          },
+          "422": {
+            "description": "Erreur de validation du code"
+          }
+        }
+      }
+    },
+    "/getFamily": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Récupérer les membres d'une famille",
+        "description": "Récupère la liste des membres d'une famille",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la famille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des membres",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "listeFamily": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "objectid"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/getFamilyIdByCreator": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Obtenir l'ID d'une famille par son créateur",
+        "description": "Récupère l'ID de famille en fonction de l'ID du créateur",
+        "parameters": [
+          {
+            "name": "creatorId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID du créateur de la famille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ID de la famille trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "familyId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/getFamilleUrgence": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Obtenir la famille d'urgence",
+        "description": "Récupère la famille marquée comme famille d'urgence pour l'utilisateur connecté",
+        "responses": {
+          "200": {
+            "description": "Famille d'urgence trouvée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Family"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Aucune famille d'urgence définie"
+          }
+        }
+      }
+    },
+    "/setFamilleUrgence/{familyId}": {
+      "put": {
+        "tags": ["Families"],
+        "summary": "Définir une famille comme famille d'urgence",
+        "description": "Marque une famille spécifique comme famille d'urgence (une seule famille d'urgence par utilisateur)",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la famille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Famille d'urgence définie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Famille d'urgence définie avec succès"
+                    },
+                    "famille": {
+                      "$ref": "#/components/schemas/Family"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/generateDeeplink/{familyId}": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Générer un deeplink pour une famille",
+        "description": "Génère un lien court pour rejoindre une famille",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de la famille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deeplink généré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "shortUrl": {
+                      "type": "string",
+                      "example": "http://localhost:8080/api/u/abc123"
+                    },
+                    "deeplink": {
+                      "type": "string",
+                      "example": "grandpaapp://?data=..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Famille non trouvée"
+          }
+        }
+      }
+    },
+    "/joinFamilyByDeeplink": {
+      "post": {
+        "tags": ["Families"],
+        "summary": "Rejoindre une famille via un deeplink",
+        "description": "Permet de rejoindre une famille en utilisant un deeplink",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deeplink"],
+                "properties": {
+                  "deeplink": {
+                    "type": "string",
+                    "description": "Le deeplink de la famille"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Famille rejointe avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Vous avez rejoint la famille"
+                    },
+                    "famille": {
+                      "$ref": "#/components/schemas/Family"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Deeplink invalide"
+          }
+        }
+      }
+    },
+    "/getElderly": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Obtenir les parents des familles d'urgence",
+        "description": "Récupère la liste des personnes âgées des familles d'urgence dont l'utilisateur fait partie",
+        "responses": {
+          "200": {
+            "description": "Liste des personnes âgées",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserPublic"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getAllUserFamilies": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Obtenir toutes les familles de l'utilisateur",
+        "description": "Récupère toutes les familles dont l'utilisateur connecté fait partie",
+        "responses": {
+          "200": {
+            "description": "Liste des familles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Family"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notificationStatus": {
+      "get": {
+        "tags": ["Families"],
+        "summary": "Statut de la liste de notifications",
+        "description": "Vérifie le statut de la liste de notifications pour l'utilisateur",
+        "responses": {
+          "200": {
+            "description": "Statut récupéré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token manquant ou invalide"
+          }
+        }
+      }
+    },
+    "/AllUsers": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Liste de tous les utilisateurs",
+        "description": "Récupère la liste complète des utilisateurs enregistrés",
+        "responses": {
+          "200": {
+            "description": "Liste des utilisateurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/addRole": {
+      "put": {
+        "tags": ["Users"],
+        "summary": "Ajouter un rôle à un utilisateur",
+        "description": "Assigne un rôle spécifique à un utilisateur",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userId", "role"],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de l'utilisateur"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "Rôle à assigner",
+                    "example": "parent"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rôle ajouté avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Rôle ajouté avec succès"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        }
+      }
+    },
+    "/AllChildren": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Liste des utilisateurs avec rôle enfant",
+        "description": "Récupère tous les utilisateurs ayant le rôle 'enfant'",
+        "responses": {
+          "200": {
+            "description": "Liste des enfants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/createAlerte": {
+      "post": {
+        "tags": ["Alerts"],
+        "summary": "Créer une alerte d'urgence",
+        "description": "Crée une nouvelle alerte d'urgence avec géolocalisation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["date", "coordonnees", "personneAgeeId"],
+                "properties": {
+                  "nom": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30,
+                    "description": "Nom de l'alerte"
+                  },
                   "date": {
                     "type": "string",
                     "format": "date-time",
-                    "description": "Date de l'alerte"
+                    "description": "Date et heure de l'alerte"
                   },
                   "type": {
                     "type": "string",
-                    "description": "Type de l'alerte"
+                    "description": "Type d'alerte",
+                    "example": "chute"
                   },
-                  "coordinates": {
-                    "type": "array",
-                    "description": "Coordonnées géographiques de l'alerte",
-                    "items": {
-                      "type": "number"
-                    },
-                    "example": [
-                      45.764043,
-                      4.835659
-                    ]
+                  "coordonnees": {
+                    "type": "object",
+                    "required": ["coordinates"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["Point"],
+                        "default": "Point"
+                      },
+                      "coordinates": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "description": "[longitude, latitude]",
+                        "example": [2.3522, 48.8566]
+                      }
+                    }
+                  },
+                  "personneAgeeId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de la personne âgée"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Message additionnel"
                   }
                 }
               }
@@ -700,11 +1638,60 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/Alert"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Données invalides"
+          }
+        }
+      }
+    },
+    "/alertes/{alerteId}": {
+      "get": {
+        "tags": ["Alerts"],
+        "summary": "Détails d'une alerte",
+        "description": "Récupère les détails d'une alerte et les confirmations de prise en charge",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "alerteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID de l'alerte"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détails de l'alerte",
+            "content": {
+              "application/json": {
+                "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Alerte créée avec succès"
+                    "alerte": {
+                      "$ref": "#/components/schemas/Alert"
+                    },
+                    "confirmations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "helper": {
+                            "$ref": "#/components/schemas/UserPublic"
+                          },
+                          "confirmedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -712,15 +1699,63 @@
             }
           },
           "401": {
-            "description": "Token d'authentification manquant ou invalide",
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Alerte non trouvée"
+          }
+        }
+      }
+    },
+    "/notifications/initialiser": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Initialiser la liste de notifications",
+        "description": "Initialise ou met à jour la liste de notifications de proximité pour une personne âgée",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["coordinates"],
+                "properties": {
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[longitude, latitude]",
+                    "example": [2.3522, 48.8566]
+                  },
+                  "rayonNotification": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "Rayon de notification en kilomètres (par défaut 30km)",
+                    "example": 30
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Liste de notifications initialisée",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
+                    "message": {
                       "type": "string",
-                      "example": "Invalid authentication token"
+                      "example": "Liste de notifications initialisée"
+                    },
+                    "notificationList": {
+                      "$ref": "#/components/schemas/NotificationList"
                     }
                   }
                 }
@@ -728,251 +1763,1110 @@
             }
           },
           "422": {
-            "description": "Erreur de validation des données",
+            "description": "Erreur de validation des coordonnées"
+          }
+        }
+      }
+    },
+    "/notifications/verifier-proximite": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Vérifier la proximité",
+        "description": "Vérifie si une personne est dans le rayon de notification d'une personne âgée",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["coordinates", "personneAgeeId"],
+                "properties": {
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[longitude, latitude]",
+                    "example": [2.3522, 48.8566]
+                  },
+                  "personneAgeeId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de la personne âgée"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Résultat de la vérification de proximité",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Invalid coordinates"
+                    "dansLeRayon": {
+                      "type": "boolean",
+                      "description": "True si la personne est dans le rayon"
+                    },
+                    "distance": {
+                      "type": "number",
+                      "description": "Distance en kilomètres"
                     }
                   }
                 }
               }
             }
           },
-          "500": {
-            "description": "Erreur interne du serveur",
+          "422": {
+            "description": "Erreur de validation"
+          }
+        }
+      }
+    },
+    "/notifications/liste": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "Liste des personnes à notifier",
+        "description": "Récupère la liste des personnes dans le rayon de notification pour la personne âgée connectée",
+        "responses": {
+          "200": {
+            "description": "Liste des personnes à notifier",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Erreur lors de la création de l'alerte"
+                    "personnesANotifier": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserPublic"
+                      }
                     }
                   }
                 }
               }
+            }
+          },
+          "404": {
+            "description": "Aucune liste de notifications trouvée"
+          }
+        }
+      }
+    },
+    "/notifications/alerte-urgence": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Déclencher une alerte d'urgence",
+        "description": "Envoie une alerte d'urgence à toutes les personnes dans la liste de notifications",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "typeAlerte": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "description": "Type d'alerte",
+                    "example": "chute"
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "Message personnalisé",
+                    "example": "J'ai besoin d'aide immédiatement"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alerte envoyée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Alerte envoyée à X personnes"
+                    },
+                    "nombreDestinataires": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Aucune personne à notifier"
+          }
+        }
+      }
+    },
+    "/notifications/update-fcm-token": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Mettre à jour le token FCM",
+        "description": "Met à jour le token Firebase Cloud Messaging pour les notifications push",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["fcmToken"],
+                "properties": {
+                  "fcmToken": {
+                    "type": "string",
+                    "description": "Token FCM"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "enum": ["ios", "android", "web"],
+                    "description": "Plateforme de l'appareil"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token FCM mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Token FCM mis à jour avec succès"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/confirmer-prise-en-charge": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Confirmer la prise en charge d'une alerte",
+        "description": "Confirme qu'un aidant prend en charge une alerte d'urgence",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["alerteId"],
+                "properties": {
+                  "alerteId": {
+                    "type": "string",
+                    "format": "objectid",
+                    "description": "ID de l'alerte"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Notes additionnelles"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prise en charge confirmée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Prise en charge confirmée"
+                    },
+                    "priseEnCharge": {
+                      "$ref": "#/components/schemas/PriseEnCharge"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alerte non trouvée"
+          }
+        }
+      }
+    },
+    "/contacts/creer": {
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Créer un nouveau contact d'urgence",
+        "description": "Crée un nouveau contact d'urgence pour la personne âgée connectée",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nomComplet", "telephone", "email"],
+                "properties": {
+                  "nomComplet": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nom complet du contact",
+                    "example": "Dr. Martin Leblanc"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "pattern": "^[\\+]?[0-9\\s\\-\\(\\)]{10,20}$",
+                    "description": "Numéro de téléphone",
+                    "example": "+33612345678"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Adresse email",
+                    "example": "m.leblanc@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contact créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation"
+          }
+        }
+      }
+    },
+    "/contacts/modifier/{contactId}": {
+      "put": {
+        "tags": ["Contacts"],
+        "summary": "Modifier un contact d'urgence",
+        "description": "Met à jour les informations d'un contact d'urgence existant",
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID du contact"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nomComplet": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nouveau nom complet"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "pattern": "^[\\+]?[0-9\\s\\-\\(\\)]{10,20}$",
+                    "description": "Nouveau numéro de téléphone"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Nouvelle adresse email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact modifié avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Contact non trouvé"
+          }
+        }
+      }
+    },
+    "/contacts/liste": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Liste des contacts d'urgence",
+        "description": "Récupère tous les contacts actifs de la personne âgée connectée, triés alphabétiquement",
+        "responses": {
+          "200": {
+            "description": "Liste des contacts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Contact"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/{contactId}": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Détails d'un contact",
+        "description": "Récupère les détails d'un contact spécifique par son ID",
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID du contact"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détails du contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contact"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Contact non trouvé"
+          }
+        }
+      }
+    },
+    "/contacts/supprimer/{contactId}": {
+      "delete": {
+        "tags": ["Contacts"],
+        "summary": "Supprimer un contact d'urgence",
+        "description": "Désactive un contact d'urgence existant ",
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "ID du contact"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contact supprimé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Contact supprimé avec succès"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID invalide"
+          },
+          "404": {
+            "description": "Contact non trouvé"
+          }
+        }
+      }
+    },
+    "/contacts/verifier-utilisateurs": {
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Vérifier les utilisateurs de l'application",
+        "description": "Vérifie quels numéros de téléphone correspondent à des utilisateurs enregistrés de l'application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["numeros"],
+                "properties": {
+                  "numeros": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[\\+]?[0-9\\s\\-\\(\\)]{8,20}$"
+                    },
+                    "minItems": 1,
+                    "description": "Liste des numéros de téléphone à vérifier",
+                    "example": ["0612345678", "0698765432"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vérification effectuée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "utilisateurs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "telephone": {
+                            "type": "string"
+                          },
+                          "utilisateur": {
+                            "$ref": "#/components/schemas/UserPublic"
+                          },
+                          "estUtilisateur": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Format de numéros invalide"
+          }
+        }
+      }
+    },
+    "/u/{shortUrl}": {
+      "get": {
+        "tags": ["URLs"],
+        "summary": "Redirection vers un lien raccourci",
+        "description": "Redirige vers l'URL originale ou vers l'application mobile avec les données de la famille",
+        "parameters": [
+          {
+            "name": "shortUrl",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Code court de l'URL"
+          }
+        ],
+        "responses": {
+          "301": {
+            "description": "Redirection permanente vers l'URL originale"
+          },
+          "302": {
+            "description": "Redirection temporaire vers l'application mobile avec deeplink"
+          },
+          "404": {
+            "description": "Lien invalide ou famille introuvable"
+          },
+          "500": {
+            "description": "Erreur serveur"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT obtenu via l'endpoint /login"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "Token JWT stocké dans un cookie"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID unique de l'utilisateur"
+          },
+          "nom": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30,
+            "description": "Nom de famille"
+          },
+          "prenom": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30,
+            "description": "Prénom"
+          },
+          "adresse": {
+            "type": "string",
+            "description": "Adresse postale"
+          },
+          "telephone": {
+            "type": "string",
+            "description": "Numéro de téléphone"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Adresse email unique"
+          },
+          "role": {
+            "type": "string",
+            "description": "Rôle de l'utilisateur",
+            "example": "parent"
+          },
+          "fcmToken": {
+            "type": "string",
+            "nullable": true,
+            "description": "Token Firebase Cloud Messaging"
+          },
+          "fcmTokenUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Date de dernière mise à jour du token FCM"
+          },
+          "deviceInfo": {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "enum": ["ios", "android", "web"]
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date de création du compte"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date de dernière modification"
+          }
+        },
+        "required": ["nom", "prenom", "email"]
+      },
+      "UserPublic": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "prenom": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "telephone": {
+            "type": "string"
+          }
+        }
+      },
+      "Family": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID unique de la famille"
+          },
+          "nom": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30,
+            "description": "Nom de la famille"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Description de la famille"
+          },
+          "code_family": {
+            "type": "string",
+            "pattern": "^VF-[A-Za-z0-9]{4}$",
+            "description": "Code unique de la famille au format VF-XXXX",
+            "example": "VF-Ab12"
+          },
+          "createurId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID du créateur de la famille"
+          },
+          "listeFamily": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "Liste des IDs des membres de la famille"
+          },
+          "urgence": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indique si c'est la famille d'urgence"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["nom", "code_family", "createurId"]
+      },
+      "Conversation": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "IDs des participants de la conversation"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "objectid"
+            },
+            "description": "IDs des messages de la conversation"
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/Message",
+            "description": "Dernier message de la conversation"
+          },
+          "unreadCount": {
+            "type": "integer",
+            "description": "Nombre de messages non lus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "conversationId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de la conversation"
+          },
+          "senderId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de l'expéditeur"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["text", "image", "audio", "document"],
+            "description": "Type de message"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "Contenu textuel du message"
+          },
+          "mediaUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL du fichier média"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nom du fichier"
+          },
+          "fileSize": {
+            "type": "number",
+            "nullable": true,
+            "description": "Taille du fichier en octets"
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Type MIME du fichier"
+          },
+          "isRead": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indique si le message a été lu"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["conversationId", "senderId", "type"]
+      },
+      "Alert": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "nom": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date et heure de l'alerte"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type d'alerte"
+          },
+          "coordonnees": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["Point"]
+              },
+              "coordinates": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "[longitude, latitude]"
+              }
+            }
+          },
+          "personneAgeeId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de la personne âgée"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["envoyée", "prise_en_charge", "résolue", "annulée"],
+            "default": "envoyée",
+            "description": "Statut de l'alerte"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true,
+            "description": "Message additionnel"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["date", "coordonnees", "personneAgeeId"]
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "personneAgeeId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de la personne âgée propriétaire du contact"
+          },
+          "nomComplet": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Nom complet du contact"
+          },
+          "telephone": {
+            "type": "string",
+            "description": "Numéro de téléphone"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Adresse email"
+          },
+          "actif": {
+            "type": "boolean",
+            "default": true,
+            "description": "Indique si le contact est actif"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["personneAgeeId", "nomComplet", "telephone", "email"]
+      },
+      "NotificationList": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "personneAgeeId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de la personne âgée"
+          },
+          "coordonneesPersonneAgee": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["Point"]
+              },
+              "coordinates": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "[longitude, latitude]"
+              }
+            }
+          },
+          "personnesANotifier": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "personneId": {
+                  "type": "string",
+                  "format": "objectid"
+                },
+                "ajouteLe": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "derniereVerification": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "rayonNotification": {
+            "type": "integer",
+            "default": 30,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Rayon de notification en kilomètres"
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "derniereMiseAJourPosition": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PriseEnCharge": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "objectid"
+          },
+          "alerteId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de l'alerte"
+          },
+          "helperId": {
+            "type": "string",
+            "format": "objectid",
+            "description": "ID de l'aidant"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date de confirmation"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "arrived", "completed", "cancelled"],
+            "default": "confirmed",
+            "description": "Statut de la prise en charge"
+          },
+          "arrivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Date d'arrivée sur place"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Date de fin d'intervention"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Notes additionnelles"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["alerteId", "helperId"]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Message d'erreur"
+          }
+        },
+        "required": ["error"]
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Non autorisé - Token JWT manquant ou invalide",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized"
             }
           }
         }
       }
     }
   },
-  "security": [
-    {
-      "cookieAuth": []
-    }
-  ],
-  "components": {
-    "securitySchemes": {
-      "cookieAuth": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "token"
-      }
-    },
-    "schemas": {
-      "Profil": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "hexadecimal",
-            "example": "siosee43fees"
-          },
-          "nom": {
-            "type": "string",
-            "example": "Durand"
-          },
-          "prenom": {
-            "type": "string",
-            "example": "Alain"
-          },
-          "adresse": {
-            "type": "string",
-            "example": "20 rue du coq"
-          },
-          "telephone": {
-            "type": "string",
-            "example": 123456789
-          },
-          "email": {
-            "type": "string",
-            "example": "azerty@g.com"
-          }
-        }
-      },
-      "Create": {
-        "type": "object",
-        "properties": {
-          "nom": {
-            "type": "string",
-            "example": "Durand"
-          },
-          "prenom": {
-            "type": "string",
-            "example": "Alain"
-          },
-          "adresse": {
-            "type": "string",
-            "example": "20 rue du coq"
-          },
-          "telephone": {
-            "type": "string",
-            "example": 123456789
-          },
-          "email": {
-            "type": "string",
-            "example": "azerty@g.com"
-          },
-          "mdp": {
-            "type": "string",
-            "example": "azerty2024"
-          }
-        }
-      },
-      "Login": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "example": "azerty@g.com"
-          },
-          "mdp": {
-            "type": "string",
-            "example": "azerty2024"
-          }
-        }
-      },
-      "Verify_user": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "hexadecimal"
-          }
-        }
-      },
-      "CreateFamily": {
-        "type": "object",
-        "properties": {
-          "nom": {
-            "type": "string",
-            "example": "Durand"
-          },
-          "description": {
-            "type": "string",
-            "example": "Happy family"
-          }
-        }
-      },
-      "AddToFamily": {
-        "type": "object",
-        "properties": {
-          "code_family": {
-            "type": "string",
-            "example": "VF-3r5T"
-          }
-        }
-      },
-      "getFamily": {
-        "type": "object",
-        "properties": {
-          "membresFamilleIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "hexadecimal"
-            },
-            "example": [
-              "sfe2TE334esff",
-              "usue445SSFEE",
-              "sef3452sFEFES"
-            ]
-          }
-        }
-      },
-      "AllUsers": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "hexadecimal"
-          },
-          "nom": {
-            "type": "string"
-          },
-          "prenom": {
-            "type": "string"
-          }
-        },
-        "example": [
-          {
-            "id": "siosee43fees",
-            "nom": "Durand",
-            "prenom": "Alain"
-          },
-          {
-            "id": "kfls45872fjs",
-            "nom": "Dupont",
-            "prenom": "Marie"
-          },
-          {
-            "id": "klj3894fdsm",
-            "nom": "Martin",
-            "prenom": "Jean"
-          }
-        ]
-      },
-      "getFamilyIdByCreator": {
-        "type": "object",
-        "properties": {
-          "familyId": {
-            "type": "string",
-            "example": "664f337bf3ca07c7e6e6b034"
-          }
-        }
-      },
-      "generateDeeplink": {
-        "type": "object",
-        "properties": {
-          "deeplink": {
-            "type": "string",
-            "example": "http://localhost:8080/u/spqlir"
-          }
-        }
-      },
-      "joinFamilyByDeeplink": {
-        "type": "object",
-        "properties": {
-          "deeplink": {
-            "type": "string",
-            "example": "http://localhost:8080/u/spqlir"
-          }
-        }
-      },
-      "addRole": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "example": "child"
-          }
-        }
-      },
-      "verifyToken": {
-        "type": "object",
-        "properties": {
-          "valid": {
-            "type": "boolean"
-          }
-        }
-      }
-    }
-  }
+  "security": []
 }

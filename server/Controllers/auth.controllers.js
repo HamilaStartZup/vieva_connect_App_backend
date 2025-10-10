@@ -1,5 +1,10 @@
 // importation des modules et modeles nécesssaires
 const Personne = require("../models/personnes");
+const Famille = require("../models/familles");
+const Conversation = require("../models/conversations");
+const Contact = require("../models/contacts");
+const Alerte = require("../models/alertes");
+const NotificationList = require("../models/notificationLists");
 const { validationResult } = require("express-validator");
 const jwtToken = require("jsonwebtoken");
 const { expressjwt: jwt } = require("express-jwt");
@@ -333,9 +338,142 @@ updateProfile: async (req, res) => {
   } catch (error) {
     console.log("Error in updateProfile controller:", error.message);
     console.log("Error stack:", error.stack);
-    return res.status(500).json({ 
-      error: "Erreur serveur lors de la modification du profil" 
+    return res.status(500).json({
+      error: "Erreur serveur lors de la modification du profil"
     });
   }
 },
+
+  // Fonction pour supprimer un compte utilisateur (conforme RGPD)
+  deleteAccount: async (req, res) => {
+    try {
+      console.log("=== Début deleteAccount ===");
+      console.log("Authenticated user ID:", req.auth._id);
+
+      const userId = req.auth._id;
+
+      // Recherche de l'utilisateur
+      const personne = await Personne.findById(userId);
+      if (!personne) {
+        console.log("User not found with ID:", userId);
+        return res.status(404).json({
+          error: "Utilisateur non trouvé",
+        });
+      }
+
+      // Vérifier si le compte est déjà supprimé
+      if (personne.isDeleted) {
+        console.log("Account already deleted");
+        return res.status(400).json({
+          error: "Ce compte a déjà été supprimé",
+        });
+      }
+
+      console.log("Starting account deletion process for:", personne.email);
+
+      // === ÉTAPE 1: Supprimer les contacts de l'utilisateur ===
+      console.log("Step 1: Deleting contacts...");
+      const deletedContacts = await Contact.deleteMany({
+        personneAgeeId: userId
+      });
+      console.log(`Deleted ${deletedContacts.deletedCount} contacts`);
+
+      // === ÉTAPE 2: Supprimer les listes de notifications ===
+      console.log("Step 2: Deleting notification lists...");
+      const deletedNotifications = await NotificationList.deleteMany({
+        personneAgeeId: userId
+      });
+      console.log(`Deleted ${deletedNotifications.deletedCount} notification lists`);
+
+      // === ÉTAPE 3: Annuler les alertes de l'utilisateur ===
+      console.log("Step 3: Cancelling alerts...");
+      const cancelledAlerts = await Alerte.updateMany(
+        { personneAgeeId: userId, status: { $ne: 'annulée' } },
+        { $set: { status: 'annulée' } }
+      );
+      console.log(`Cancelled ${cancelledAlerts.modifiedCount} alerts`);
+
+      // === ÉTAPE 4: Supprimer les familles créées par l'utilisateur ===
+      console.log("Step 4: Deleting families created by user...");
+      const deletedFamilies = await Famille.deleteMany({
+        createurId: userId
+      });
+      console.log(`Deleted ${deletedFamilies.deletedCount} families`);
+
+      // === ÉTAPE 5: Retirer l'utilisateur des familles dont il est membre ===
+      console.log("Step 5: Removing user from family members...");
+      const updatedFamilies = await Famille.updateMany(
+        { listeFamily: userId },
+        { $pull: { listeFamily: userId } }
+      );
+      console.log(`Removed user from ${updatedFamilies.modifiedCount} families`);
+
+      // === ÉTAPE 6: Retirer l'utilisateur des conversations ===
+      console.log("Step 6: Removing user from conversations...");
+      const updatedConversations = await Conversation.updateMany(
+        { participants: userId },
+        { $pull: { participants: userId } }
+      );
+      console.log(`Removed user from ${updatedConversations.modifiedCount} conversations`);
+
+      // === ÉTAPE 7: Supprimer les conversations vides ===
+      console.log("Step 7: Deleting empty conversations...");
+      const deletedConversations = await Conversation.deleteMany({
+        participants: { $size: 0 }
+      });
+      console.log(`Deleted ${deletedConversations.deletedCount} empty conversations`);
+
+      // === ÉTAPE 8: Anonymiser les données personnelles de l'utilisateur ===
+      console.log("Step 8: Anonymizing user personal data...");
+
+      const timestamp = Date.now();
+      const randomHash = await bcrypt.hash(`deleted_${userId}_${timestamp}`, 10);
+
+      const anonymizedData = {
+        nom: "Utilisateur",
+        prenom: "Supprimé",
+        email: `deleted_${userId}_${timestamp}@anonymized.local`,
+        telephone: null,
+        adresse: null,
+        mdp: randomHash,
+        fcmToken: null,
+        fcmTokenUpdatedAt: null,
+        deviceInfo: {
+          platform: null,
+          version: null
+        },
+        isDeleted: true,
+        deletedAt: new Date()
+      };
+
+      // Mise à jour de l'utilisateur avec les données anonymisées
+      await Personne.findByIdAndUpdate(userId, anonymizedData);
+
+      console.log("Account successfully deleted and anonymized");
+
+      // === ÉTAPE 9: Supprimer le cookie de session ===
+      res.clearCookie("token");
+
+      // Envoi de la réponse de succès
+      return res.json({
+        message: "Votre compte a été supprimé avec succès. Toutes vos données personnelles ont été anonymisées conformément au RGPD.",
+        deletionSummary: {
+          contactsDeleted: deletedContacts.deletedCount,
+          notificationListsDeleted: deletedNotifications.deletedCount,
+          alertsCancelled: cancelledAlerts.modifiedCount,
+          familiesDeleted: deletedFamilies.deletedCount,
+          familyMembershipsRemoved: updatedFamilies.modifiedCount,
+          conversationsUpdated: updatedConversations.modifiedCount,
+          emptyConversationsDeleted: deletedConversations.deletedCount
+        }
+      });
+
+    } catch (error) {
+      console.log("Error in deleteAccount controller:", error.message);
+      console.log("Error stack:", error.stack);
+      return res.status(500).json({
+        error: "Erreur serveur lors de la suppression du compte"
+      });
+    }
+  },
 };
