@@ -385,6 +385,14 @@ updateProfile: async (req, res) => {
       });
       console.log(`Deleted ${deletedNotifications.deletedCount} notification lists`);
 
+      // === ÉTAPE 2bis: Retirer l'utilisateur des listes de personnes à notifier ===
+      console.log("Step 2bis: Removing user from notification lists...");
+      const updatedNotificationLists = await NotificationList.updateMany(
+        { "personnesANotifier.personneId": userId },
+        { $pull: { personnesANotifier: { personneId: userId } } }
+      );
+      console.log(`Removed user from ${updatedNotificationLists.modifiedCount} notification lists`);
+
       // === ÉTAPE 3: Annuler les alertes de l'utilisateur ===
       console.log("Step 3: Cancelling alerts...");
       const cancelledAlerts = await Alerte.updateMany(
@@ -460,6 +468,7 @@ updateProfile: async (req, res) => {
         deletionSummary: {
           contactsDeleted: deletedContacts.deletedCount,
           notificationListsDeleted: deletedNotifications.deletedCount,
+          notificationListsUpdated: updatedNotificationLists.modifiedCount,
           alertsCancelled: cancelledAlerts.modifiedCount,
           familiesDeleted: deletedFamilies.deletedCount,
           familyMembershipsRemoved: updatedFamilies.modifiedCount,
