@@ -84,13 +84,17 @@ connectToDatabase();
 const messageSocketHandler = require('./socket/messageHandler');
 messageSocketHandler(io);
 
+// Configuration Socket.io pour la signalisation WebRTC
+const webrtcSignalingHandler = require('./socket/webrtcSignalingHandler');
+webrtcSignalingHandler(io);
+
 // Rendre l'instance io disponible globalement pour les controllers
 global.io = io;
 
 // Démarrage du serveur
 server.listen(PORT, () => {
   console.log(`Server is running on ${server instanceof https.Server ? 'HTTPS' : 'HTTP'}://localhost:${PORT}`);
-  console.log('Socket.io ready for messaging');
+  console.log('Socket.io ready for messaging and WebRTC signaling');
 });
 
 // Arrêt propre du serveur
